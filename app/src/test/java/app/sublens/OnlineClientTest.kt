@@ -1,7 +1,6 @@
 package app.sublens
 
 import app.sublens.OnlineClient.Failure
-import com.sun.net.httpserver.HttpServer
 import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
@@ -9,8 +8,13 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.net.InetSocketAddress
+import java.io.BufferedReader
+import java.io.InputStreamReader
+import java.net.InetAddress
+import java.net.ServerSocket
+import java.net.Socket
 import java.util.Collections
+import kotlin.concurrent.thread
 
 /**
  * Online translation without a phone and without a key: prompt, parsing of answers, model choice,
@@ -148,42 +152,73 @@ class OnlineClientTest {
         val log: MutableList<Pair<String, String>> = Collections.synchronizedList(ArrayList())
 
         val url: String by lazy {
-            val server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
-            server.createContext("/") { ex ->
-                val auth = ex.requestHeaders.getFirst("Authorization") ?: ""
-                val raw = ex.requestBody.bufferedReader().readText()
-                fun send(code: Int, body: String) {
-                    val bytes = body.toByteArray(Charsets.UTF_8)
-                    ex.responseHeaders.add("Content-Type", "application/json; charset=utf-8")
-                    ex.sendResponseHeaders(code, bytes.size.toLong())
-                    ex.responseBody.use { it.write(bytes) }
+            // A tiny HTTP server on a plain socket (the JDK's HttpServer isn't visible in Android unit tests).
+            val server = ServerSocket(0, 50, InetAddress.getByName("127.0.0.1"))
+            thread(isDaemon = true) {
+                while (true) {
+                    val socket = server.accept()
+                    thread(isDaemon = true) { socket.use { handle(it) } }
                 }
-                if (ex.requestMethod == "GET" && ex.requestURI.path.endsWith("/models")) {
-                    if (auth == "Bearer bad") return@createContext send(401, """{"error":{"message":"Invalid API key"}}""")
-                    val ids = listOf("glm-4.5-flash", "glm-4.7-flash", "glm-4-plus", "embedding-3")
-                    return@createContext send(200, JSONObject().put("data", JSONArray(ids.map { JSONObject().put("id", it) })).toString())
-                }
-                log.add(auth to raw)
-                if (auth == "Bearer bad") return@createContext send(401, """{"error":{"message":"Invalid API key"}}""")
-                val body = JSONObject(raw)
-                val items = JSONObject(body.getJSONArray("messages").getJSONObject(1).getString("content")).getJSONArray("items")
-                val out = (0 until items.length()).map { "T(${items.getString(it)})" }
-                var content = JSONObject().put("translations", JSONArray(out)).toString()
-                when (body.getString("model")) {
-                    "limit" -> return@createContext send(429, """{"error":{"message":"Rate limit reached"}}""")
-                    "gone" -> return@createContext send(404, """{"error":{"message":"The model `gone` does not exist"}}""")
-                    "strict" -> if (body.has("temperature") || body.has("thinking")) {
-                        return@createContext send(400, """{"error":{"message":"Unrecognized request argument supplied: thinking"}}""")
-                    }
-                    "merge" -> if (out.size >= 3) content = JSONObject().put("translations", JSONArray(out.dropLast(1))).toString()
-                    "fenced" -> content = "<think>hmm {}</think>\n```json\n$content\n```"
-                    "plain" -> if (out.size == 1) content = out[0]
-                }
-                val message = JSONObject().put("role", "assistant").put("content", content)
-                send(200, JSONObject().put("choices", JSONArray().put(JSONObject().put("index", 0).put("message", message))).toString())
             }
-            server.start()
-            "http://127.0.0.1:${server.address.port}/v1"
+            "http://127.0.0.1:${server.localPort}/v1"
+        }
+
+        private fun handle(socket: Socket) {
+            val input = BufferedReader(InputStreamReader(socket.getInputStream(), Charsets.UTF_8))
+            val requestLine = input.readLine() ?: return
+            val (method, path) = requestLine.split(" ").let { it[0] to it[1] }
+            var length = 0
+            var auth = ""
+            while (true) {
+                val line = input.readLine() ?: break
+                if (line.isEmpty()) break
+                val name = line.substringBefore(':').trim().lowercase()
+                val value = line.substringAfter(':').trim()
+                if (name == "content-length") length = value.toInt()
+                if (name == "authorization") auth = value
+            }
+            // Content-Length counts bytes; read characters until the decoded body has that many bytes.
+            val sb = StringBuilder()
+            while (sb.toString().toByteArray(Charsets.UTF_8).size < length) {
+                val c = input.read()
+                if (c < 0) break
+                sb.append(c.toChar())
+            }
+            val (code, body) = respond(method, path, auth, sb.toString())
+            val bytes = body.toByteArray(Charsets.UTF_8)
+            val out = socket.getOutputStream()
+            out.write(
+                ("HTTP/1.1 $code X\r\nContent-Type: application/json; charset=utf-8\r\n" +
+                    "Content-Length: ${bytes.size}\r\nConnection: close\r\n\r\n").toByteArray(Charsets.UTF_8),
+            )
+            out.write(bytes)
+            out.flush()
+        }
+
+        private fun respond(method: String, path: String, auth: String, raw: String): Pair<Int, String> {
+            if (method == "GET" && path.endsWith("/models")) {
+                if (auth == "Bearer bad") return 401 to """{"error":{"message":"Invalid API key"}}"""
+                val ids = listOf("glm-4.5-flash", "glm-4.7-flash", "glm-4-plus", "embedding-3")
+                return 200 to JSONObject().put("data", JSONArray(ids.map { JSONObject().put("id", it) })).toString()
+            }
+            log.add(auth to raw)
+            if (auth == "Bearer bad") return 401 to """{"error":{"message":"Invalid API key"}}"""
+            val body = JSONObject(raw)
+            val items = JSONObject(body.getJSONArray("messages").getJSONObject(1).getString("content")).getJSONArray("items")
+            val out = (0 until items.length()).map { "T(${items.getString(it)})" }
+            var content = JSONObject().put("translations", JSONArray(out)).toString()
+            when (body.getString("model")) {
+                "limit" -> return 429 to """{"error":{"message":"Rate limit reached"}}"""
+                "gone" -> return 404 to """{"error":{"message":"The model `gone` does not exist"}}"""
+                "strict" -> if (body.has("temperature") || body.has("thinking")) {
+                    return 400 to """{"error":{"message":"Unrecognized request argument supplied: thinking"}}"""
+                }
+                "merge" -> if (out.size >= 3) content = JSONObject().put("translations", JSONArray(out.dropLast(1))).toString()
+                "fenced" -> content = "<think>hmm {}</think>\n```json\n$content\n```"
+                "plain" -> if (out.size == 1) content = out[0]
+            }
+            val message = JSONObject().put("role", "assistant").put("content", content)
+            return 200 to JSONObject().put("choices", JSONArray().put(JSONObject().put("index", 0).put("message", message))).toString()
         }
     }
 }
