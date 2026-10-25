@@ -76,6 +76,7 @@ class OverlayService : Service(), OverlayController.Callbacks, TextPipeline.List
     override fun onCreate() {
         super.onCreate()
         prefs = Prefs(this)
+        Languages.autoLabel = getString(R.string.auto_detect)
     }
 
     override fun onBind(intent: Intent?): IBinder? = null

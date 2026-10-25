@@ -4,12 +4,12 @@ import com.google.mlkit.nl.translate.TranslateLanguage
 import java.util.Locale
 
 /** Schriftsysteme, die die Texterkennung (ML Kit) lesen kann. */
-enum class Script(val key: String, val label: String) {
-    LATIN("latin", "Lateinisch (EN, DE, FR, ES, IT …)"),
-    CHINESE("chinese", "Chinesisch"),
-    JAPANESE("japanese", "Japanisch"),
-    KOREAN("korean", "Koreanisch"),
-    DEVANAGARI("devanagari", "Devanagari (Hindi, Marathi)");
+enum class Script(val key: String, val labelRes: Int) {
+    LATIN("latin", R.string.script_latin),
+    CHINESE("chinese", R.string.script_chinese),
+    JAPANESE("japanese", R.string.script_japanese),
+    KOREAN("korean", R.string.script_korean),
+    DEVANAGARI("devanagari", R.string.script_devanagari);
 
     /** Chinesisch und Japanisch trennen Wörter nicht mit Leerzeichen. */
     val joinsWithoutSpace: Boolean get() = this == CHINESE || this == JAPANESE
@@ -21,6 +21,10 @@ enum class Script(val key: String, val label: String) {
 
 object Languages {
     const val AUTO = "auto"
+
+    /** Anzeigename für "Automatisch erkennen" in der Handysprache – wird beim Start aus den Ressourcen gesetzt. */
+    @Volatile
+    var autoLabel = "Auto"
 
     /** Sprachen, deren Schrift die Texterkennung nicht lesen kann – nur als Zielsprache nutzbar. */
     private val NO_OCR = setOf(
@@ -36,7 +40,7 @@ object Languages {
     fun sources(): List<String> = listOf(AUTO) + targets().filter { it !in NO_OCR }
 
     fun displayName(tag: String): String {
-        if (tag == AUTO) return "Automatisch erkennen"
+        if (tag == AUTO) return autoLabel
         val name = Locale.forLanguageTag(tag).getDisplayLanguage(Locale.getDefault())
         if (name.isBlank() || name.equals(tag, ignoreCase = true)) return tag.uppercase(Locale.ROOT)
         return name.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
@@ -54,9 +58,9 @@ object Languages {
         else -> Script.LATIN
     }
 
-    /** Gerätesprache, falls übersetzbar, sonst Deutsch. */
+    /** Handysprache, falls übersetzbar, sonst Englisch. */
     fun defaultTarget(): String =
-        TranslateLanguage.fromLanguageTag(Locale.getDefault().language) ?: TranslateLanguage.GERMAN
+        TranslateLanguage.fromLanguageTag(Locale.getDefault().language) ?: TranslateLanguage.ENGLISH
 
     /** Ergebnis der Spracherkennung in eine übersetzbare Sprache umwandeln (null = unbekannt). */
     fun normalizeDetected(tag: String?): String? {

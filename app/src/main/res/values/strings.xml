@@ -1,97 +1,89 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">SubLens</string>
-    <string name="app_tagline">Live-Übersetzung als Overlay – komplett offline</string>
-
-    <!-- Startseite -->
-    <string name="section_permissions">Berechtigungen</string>
-    <string name="perm_overlay_ok">✓ Über anderen Apps anzeigen</string>
-    <string name="perm_overlay_missing">✗ Über anderen Apps anzeigen</string>
-    <string name="perm_notif_ok">✓ Benachrichtigung</string>
-    <string name="perm_notif_missing">✗ Benachrichtigung (optional)</string>
-    <string name="perm_grant">Erlauben</string>
-
-    <string name="start">Übersetzer starten</string>
-    <string name="stop">Übersetzer beenden</string>
-    <string name="start_hint">Danach YouTube öffnen, Untertitel (CC) einschalten und den Rahmen über die Untertitel ziehen. Android fragt beim Start nach der Bildschirmfreigabe – es wird nichts gespeichert oder hochgeladen.</string>
-    <string name="toast_need_overlay">Bitte zuerst „Über anderen Apps anzeigen“ erlauben.</string>
-    <string name="toast_need_capture">Ohne Bildschirmfreigabe kann SubLens keinen Text erkennen.</string>
-    <string name="toast_running">SubLens läuft – öffne jetzt dein Video.</string>
-    <string name="toast_start_failed">SubLens konnte nicht gestartet werden.</string>
-
-    <string name="section_language">Sprache</string>
-    <string name="label_from">Von</string>
-    <string name="label_to">Nach</string>
-    <string name="label_script">Schrift bei automatischer Erkennung</string>
-    <string name="language_note">Die Texterkennung liest lateinische, chinesische, japanische, koreanische und Devanagari-Schrift. Kyrillisch, Arabisch, Griechisch, Hebräisch und Thai werden leider nicht erkannt.</string>
-    <string name="auto_detect">Automatisch erkennen</string>
-
-    <string name="section_display">Anzeige</string>
-    <string name="label_bar">Position der Leiste</string>
-    <string name="bar_above">Über dem Rahmen</string>
-    <string name="bar_below">Unter dem Rahmen</string>
-    <string name="label_text_size">Textgröße: %1$d sp</string>
-    <string name="show_original">Originaltext zusätzlich anzeigen</string>
-
-    <string name="section_speed">Aktualisierung</string>
-    <string name="speed_fast">Schnell (0,3 s)</string>
-    <string name="speed_normal">Normal (0,5 s)</string>
-    <string name="speed_saver">Akku sparen (1 s)</string>
-
-    <string name="section_models">Sprachpakete</string>
-    <string name="wifi_only">Nur über WLAN herunterladen</string>
-    <string name="models_hint">Jedes Sprachpaket wird einmalig geladen (ca. 30 MB) und funktioniert danach offline.</string>
-    <string name="models_empty">Noch keine Sprachpakete geladen.</string>
-    <string name="models_delete">Löschen</string>
-    <string name="models_download_target">Paket für Zielsprache jetzt laden</string>
-    <string name="models_downloading">Wird geladen …</string>
-    <string name="models_download_done">Sprachpaket bereit.</string>
-    <string name="models_download_failed">Download fehlgeschlagen.</string>
-    <string name="footer">Texterkennung und Übersetzung laufen direkt auf deinem Handy. Kein Server, kein Konto.</string>
-
-    <!-- Overlay -->
-    <string name="bar_hint">Rahmen über die Untertitel ziehen</string>
-    <string name="bar_idle">…</string>
-    <string name="cd_settings">Einstellungen</string>
-    <string name="cd_close">Schließen</string>
-    <string name="cd_resize">Höhe ändern</string>
-    <string name="cd_back">Zurück</string>
-    <string name="panel_title">Übersetzung</string>
-    <string name="panel_open_app">Alle Einstellungen öffnen →</string>
-    <string name="choice_above">Oben</string>
-    <string name="choice_below">Unten</string>
-
-    <string name="status_downloading">Lade Sprachpaket %1$s → %2$s … (einmalig ca. 30 MB)</string>
-    <string name="status_downloading_wifi">Sprachpaket %1$s → %2$s wartet auf WLAN …</string>
-    <string name="status_download_failed">Sprachpaket konnte nicht geladen werden. Internet prüfen.</string>
-    <string name="status_ocr_model">Texterkennung wird eingerichtet … (einmalig Internet nötig)</string>
-
-    <!-- Benachrichtigung -->
-    <string name="notif_channel">Overlay aktiv</string>
-    <string name="notif_title">SubLens übersetzt</string>
-    <string name="notif_text">Der Bereich im Rahmen wird erkannt und übersetzt.</string>
-    <string name="notif_stop">Beenden</string>
-    <!-- Antwortzeile -->
-    <string name="composer_hint">Antwort auf %1$s schreiben …</string>
-    <string name="composer_placeholder">Wird nach %1$s übersetzt und in die Zwischenablage kopiert</string>
-    <string name="composer_translating">Übersetze …</string>
-    <string name="composer_downloading">Lade Sprachpaket %1$s … (einmalig)</string>
-    <string name="composer_copied">✓ Auf %1$s kopiert – jetzt im Chat einfügen</string>
-    <string name="composer_failed">Übersetzung fehlgeschlagen – Internet für das Sprachpaket prüfen</string>
-    <string name="cd_copy">Übersetzen und kopieren</string>
-    <string name="label_reply">Antwort übersetzen nach</string>
-    <string name="label_composer">Antwortzeile</string>
-    <string name="reply_auto">Wie die erkannte Sprache</string>
-    <string name="choice_on">An</string>
-    <string name="choice_off">Aus</string>
-    <string name="section_reply">Antwortzeile</string>
-    <string name="composer_switch">Antwortzeile unter dem Overlay anzeigen</string>
-    <string name="reply_note">Du schreibst in deiner Sprache (oben bei „Nach“). SubLens übersetzt in die Sprache des Chats und legt den Text in die Zwischenablage – dann einfach in Telegram, WeChat &amp; Co. einfügen.</string>
-    <string name="label_mode">Übersetzung anzeigen</string>
-    <string name="choice_lens">In der Linse</string>
-    <string name="choice_bar">In der Leiste</string>
-    <string name="mode_lens_long">Direkt in der Linse – über dem Originaltext (Text blinkt kurz beim Lesen)</string>
-    <string name="mode_bar_long">In der Leiste neben der Linse – ohne Blinken</string>
-    <string name="lens_hint">Übersetzung antippen zeigt kurz das Original</string>
-    <string name="stopping">Wird beendet …</string>
+    <string name="app_name" translatable="false">SubLens</string>
+    <string name="bar_idle" translatable="false">…</string>
+    <string name="app_tagline">Live translation overlay – fully offline</string>
+    <string name="section_permissions">Permissions</string>
+    <string name="perm_overlay_ok">✓ Display over other apps</string>
+    <string name="perm_overlay_missing">✗ Display over other apps</string>
+    <string name="perm_notif_ok">✓ Notification</string>
+    <string name="perm_notif_missing">✗ Notification (optional)</string>
+    <string name="perm_grant">Allow</string>
+    <string name="start">Start translator</string>
+    <string name="stop">Stop translator</string>
+    <string name="start_hint">Then open YouTube, turn on captions (CC) and drag the frame over the subtitles. Android asks for screen sharing when starting – choose “Entire screen”. Nothing is saved or uploaded.</string>
+    <string name="toast_need_overlay">Please allow “Display over other apps” first.</string>
+    <string name="toast_need_capture">Without screen sharing SubLens cannot recognise text.</string>
+    <string name="toast_running">SubLens is running – now open your video or chat.</string>
+    <string name="toast_start_failed">SubLens could not be started.</string>
+    <string name="section_language">Language</string>
+    <string name="label_from">From</string>
+    <string name="label_to">To</string>
+    <string name="label_script">Script for automatic detection</string>
+    <string name="language_note">Text recognition reads Latin, Chinese, Japanese, Korean and Devanagari script. Cyrillic, Arabic, Greek, Hebrew and Thai can only be target languages.</string>
+    <string name="auto_detect">Detect automatically</string>
+    <string name="section_display">Display</string>
+    <string name="label_bar">Bar position</string>
+    <string name="bar_above">Above the frame</string>
+    <string name="bar_below">Below the frame</string>
+    <string name="label_text_size">Text size: %1$d sp</string>
+    <string name="show_original">Also show original text</string>
+    <string name="section_speed">Refresh</string>
+    <string name="speed_fast">Fast (0.3 s)</string>
+    <string name="speed_normal">Normal (0.5 s)</string>
+    <string name="speed_saver">Battery saver (1 s)</string>
+    <string name="section_models">Language packs</string>
+    <string name="wifi_only">Download over Wi-Fi only</string>
+    <string name="models_hint">Each language pack is downloaded once (about 30 MB) and then works offline.</string>
+    <string name="models_empty">No language packs downloaded yet.</string>
+    <string name="models_delete">Delete</string>
+    <string name="models_download_target">Download pack for target language now</string>
+    <string name="models_downloading">Downloading …</string>
+    <string name="models_download_done">Language pack ready.</string>
+    <string name="models_download_failed">Download failed.</string>
+    <string name="footer">Text recognition and translation run directly on your phone. No server, no account.</string>
+    <string name="bar_hint">Drag the frame over the text</string>
+    <string name="cd_settings">Settings</string>
+    <string name="cd_close">Close</string>
+    <string name="cd_resize">Change height</string>
+    <string name="cd_back">Back</string>
+    <string name="panel_title">Translation</string>
+    <string name="panel_open_app">Open all settings →</string>
+    <string name="choice_above">Top</string>
+    <string name="choice_below">Bottom</string>
+    <string name="status_downloading">Downloading language pack %1$s → %2$s … (once, about 30 MB)</string>
+    <string name="status_downloading_wifi">Language pack %1$s → %2$s is waiting for Wi-Fi …</string>
+    <string name="status_download_failed">Language pack could not be downloaded. Check your internet.</string>
+    <string name="status_ocr_model">Setting up text recognition … (internet needed once)</string>
+    <string name="notif_channel">Overlay active</string>
+    <string name="notif_title">SubLens is translating</string>
+    <string name="notif_text">The area inside the frame is recognised and translated.</string>
+    <string name="notif_stop">Stop</string>
+    <string name="composer_hint">Write reply in %1$s …</string>
+    <string name="composer_placeholder">Gets translated to %1$s and copied to the clipboard</string>
+    <string name="composer_translating">Translating …</string>
+    <string name="composer_downloading">Downloading language pack %1$s … (once)</string>
+    <string name="composer_copied">✓ Copied in %1$s – now paste it into the chat</string>
+    <string name="composer_failed">Translation failed – check internet for the language pack</string>
+    <string name="cd_copy">Translate and copy</string>
+    <string name="label_reply">Translate reply to</string>
+    <string name="label_composer">Reply line</string>
+    <string name="reply_auto">Same as detected language</string>
+    <string name="choice_on">On</string>
+    <string name="choice_off">Off</string>
+    <string name="section_reply">Reply line</string>
+    <string name="composer_switch">Show reply line below the lens</string>
+    <string name="reply_note">You write in your language (“To” above). SubLens translates into the chat\'s language and puts the text on the clipboard – then just paste it into Telegram, WeChat &amp; co.</string>
+    <string name="label_mode">Show translation</string>
+    <string name="choice_lens">In the lens</string>
+    <string name="choice_bar">In the bar</string>
+    <string name="mode_lens_long">Directly in the lens – over the original text (flashes briefly while reading)</string>
+    <string name="mode_bar_long">In the bar next to the lens – no flashing</string>
+    <string name="lens_hint">Tap a translation to briefly see the original</string>
+    <string name="stopping">Stopping …</string>
+    <string name="script_latin">Latin (EN, DE, FR, ES, IT …)</string>
+    <string name="script_chinese">Chinese</string>
+    <string name="script_japanese">Japanese</string>
+    <string name="script_korean">Korean</string>
+    <string name="script_devanagari">Devanagari (Hindi, Marathi)</string>
 </resources>

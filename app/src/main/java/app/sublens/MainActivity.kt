@@ -40,6 +40,7 @@ class MainActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Languages.autoLabel = getString(R.string.auto_detect)
         setContentView(R.layout.activity_main)
         prefs = Prefs(this)
         btnStart = findViewById(R.id.btn_start)
@@ -183,7 +184,7 @@ class MainActivity : Activity() {
         ) { pos -> prefs.targetLang = targets[pos] }
         setupSpinner(
             R.id.spinner_script,
-            scripts.map { it.label },
+            scripts.map { getString(it.labelRes) },
             scripts.indexOf(prefs.autoScript),
         ) { pos -> prefs.autoScript = scripts[pos] }
         updateScriptRow()
