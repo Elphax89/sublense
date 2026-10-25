@@ -16,6 +16,8 @@ Oder über die Download-Seite mit Anleitung: **https://elphax89.github.io/sublen
 3. **Installieren** tippen. Warnt Play Protect, auf *Trotzdem installieren* tippen (die App kommt nicht aus dem Play Store).
 4. SubLens öffnen, „Über anderen Apps anzeigen“ erlauben, **Übersetzer starten**.
 
+> **Ist der Schalter grau („Gesteuert durch beschränkte Einstellung“)?** Das ist Androids Schutz für Apps außerhalb des Play Stores. Einmal freischalten: *Einstellungen → Apps → SubLens → ⋮ (oben rechts) → **Eingeschränkte Einstellungen zulassen*** (Handy-Code bestätigen), danach den Schalter „Über anderen Apps anzeigen“ einschalten. [Googles Anleitung](https://support.google.com/android/answer/12623953)
+
 Updates installierst du genauso: Die neue APK einfach über die alte installieren, Einstellungen bleiben erhalten.
 
 ---
