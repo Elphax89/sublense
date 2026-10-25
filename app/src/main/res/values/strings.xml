@@ -97,4 +97,7 @@
     <string name="version_line">Version %1$s · Check for updates</string>
     <string name="lens_peek">Preview</string>
     <string name="cd_move">Move lens up or down</string>
+    <string name="update_check">Check for updates</string>
+    <string name="update_ready">New version %1$s available – install now?</string>
+    <string name="version_installed">Installed: version %1$s</string>
 </resources>

@@ -95,4 +95,7 @@
     <string name="version_line">版本 %1$s · 检查更新</string>
     <string name="lens_peek">原文</string>
     <string name="cd_move">上下移动镜头</string>
+    <string name="update_check">检查更新</string>
+    <string name="update_ready">新版本 %1$s 可用——立即安装？</string>
+    <string name="version_installed">已安装：版本 %1$s</string>
 </resources>

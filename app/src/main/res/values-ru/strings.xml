@@ -95,4 +95,7 @@
     <string name="version_line">Версия %1$s · Проверить обновления</string>
     <string name="lens_peek">Оригинал</string>
     <string name="cd_move">Переместить линзу вверх или вниз</string>
+    <string name="update_check">Проверить обновления</string>
+    <string name="update_ready">Доступна версия %1$s – установить сейчас?</string>
+    <string name="version_installed">Установлена версия %1$s</string>
 </resources>

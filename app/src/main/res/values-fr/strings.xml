@@ -95,4 +95,7 @@
     <string name="version_line">Version %1$s · Rechercher des mises à jour</string>
     <string name="lens_peek">Original</string>
     <string name="cd_move">Déplacer la loupe vers le haut ou le bas</string>
+    <string name="update_check">Rechercher des mises à jour</string>
+    <string name="update_ready">Nouvelle version %1$s disponible – installer maintenant ?</string>
+    <string name="version_installed">Installée : version %1$s</string>
 </resources>

@@ -95,4 +95,7 @@
     <string name="version_line">Wersja %1$s · Sprawdź aktualizacje</string>
     <string name="lens_peek">Oryginał</string>
     <string name="cd_move">Przesuń soczewkę w górę lub w dół</string>
+    <string name="update_check">Sprawdź aktualizacje</string>
+    <string name="update_ready">Nowa wersja %1$s dostępna – zainstalować teraz?</string>
+    <string name="version_installed">Zainstalowana: wersja %1$s</string>
 </resources>

@@ -95,4 +95,7 @@
     <string name="version_line">バージョン %1$s · アップデートを確認</string>
     <string name="lens_peek">原文</string>
     <string name="cd_move">レンズを上下に移動</string>
+    <string name="update_check">アップデートを確認</string>
+    <string name="update_ready">新しいバージョン %1$s があります – 今すぐインストール？</string>
+    <string name="version_installed">インストール済み：バージョン %1$s</string>
 </resources>

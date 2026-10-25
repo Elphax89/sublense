@@ -129,37 +129,50 @@ class MainActivity : Activity() {
 
     // ---------------------------------------------------------------- Updates
 
+    private var pendingRelease: Updater.Release? = null
+
     private fun setupUpdates() {
-        val line = findViewById<TextView>(R.id.version_line)
-        line.text = getString(R.string.version_line, Updater.installedVersionName(this))
-        line.setOnClickListener {
-            line.setText(R.string.update_checking)
+        findViewById<TextView>(R.id.version_line).text =
+            getString(R.string.version_installed, Updater.installedVersionName(this))
+        val btn = findViewById<Button>(R.id.btn_update)
+        btn.setOnClickListener {
+            if (pendingRelease != null) {
+                installUpdate()
+                return@setOnClickListener
+            }
+            btn.isEnabled = false
+            btn.setText(R.string.update_checking)
             Updater.check(this, force = true) { release, error ->
-                line.text = getString(R.string.version_line, Updater.installedVersionName(this))
+                if (isFinishing || isDestroyed) return@check
+                btn.isEnabled = true
                 when {
-                    error != null -> toast(R.string.update_check_failed)
-                    release == null -> toast(R.string.update_latest)
+                    release != null -> showUpdate(release)
+                    error != null -> flashUpdateButton(R.string.update_check_failed)
+                    else -> flashUpdateButton(R.string.update_latest)
                 }
-                showUpdate(release)
             }
         }
-        findViewById<Button>(R.id.btn_update).setOnClickListener { onUpdateClicked() }
     }
 
+    /** Ergebnis kurz im Knopf zeigen, dann wieder "Nach Updates suchen". */
+    private fun flashUpdateButton(res: Int) {
+        val btn = findViewById<Button>(R.id.btn_update)
+        btn.setText(res)
+        btn.postDelayed({ if (pendingRelease == null && !Updater.downloading) btn.setText(R.string.update_check) }, 3000)
+    }
+
+    /** Aus "Nach Updates suchen" wird "Neue Version … jetzt installieren?". */
     private fun showUpdate(release: Updater.Release?) {
-        if (isFinishing || isDestroyed) return
-        val card = findViewById<View>(R.id.update_card)
-        if (release == null) {
-            card.visibility = View.GONE
-            return
-        }
-        card.visibility = View.VISIBLE
-        findViewById<TextView>(R.id.update_text).text = getString(R.string.update_available, release.versionName)
-        card.tag = release
+        if (isFinishing || isDestroyed || release == null || Updater.downloading) return
+        pendingRelease = release
+        val btn = findViewById<Button>(R.id.btn_update)
+        btn.text = getString(R.string.update_ready, release.versionName)
+        btn.setBackgroundResource(R.drawable.bg_button_primary)
+        btn.setTextColor(getColor(R.color.on_accent))
     }
 
-    private fun onUpdateClicked() {
-        val release = findViewById<View>(R.id.update_card).tag as? Updater.Release ?: return
+    private fun installUpdate() {
+        val release = pendingRelease ?: return
         if (!packageManager.canRequestPackageInstalls()) {
             // Einmalig: SubLens darf Apps installieren (nur für die eigenen Updates).
             Toast.makeText(this, R.string.update_allow, Toast.LENGTH_LONG).show()
@@ -179,7 +192,7 @@ class MainActivity : Activity() {
             onProgress = { pct -> btn.text = getString(R.string.update_downloading, pct) },
         ) { ok ->
             btn.isEnabled = true
-            btn.setText(R.string.update_install)
+            btn.text = getString(R.string.update_ready, release.versionName)
             if (!ok) toast(R.string.update_failed)
         }
     }
@@ -284,7 +297,11 @@ class MainActivity : Activity() {
     private fun setupDisplay() {
         val mode = findViewById<RadioGroup>(R.id.radio_mode)
         mode.check(if (prefs.lensMode) R.id.radio_lens else R.id.radio_bar)
-        mode.setOnCheckedChangeListener { _, checkedId -> prefs.lensMode = checkedId == R.id.radio_lens }
+        mode.setOnCheckedChangeListener { _, checkedId ->
+            prefs.lensMode = checkedId == R.id.radio_lens
+            updateBarPosRow()
+        }
+        updateBarPosRow()
 
         val group = findViewById<RadioGroup>(R.id.radio_bar_pos)
         group.check(if (prefs.barAbove) R.id.radio_above else R.id.radio_below)
@@ -310,6 +327,13 @@ class MainActivity : Activity() {
             isChecked = prefs.showOriginal
             setOnCheckedChangeListener { _, checked -> prefs.showOriginal = checked }
         }
+    }
+
+    /** "Position der Leiste" gibt es nur, wenn die Übersetzung in der Leiste steht. */
+    private fun updateBarPosRow() {
+        val v = if (prefs.lensMode) View.GONE else View.VISIBLE
+        findViewById<View>(R.id.label_bar_pos).visibility = v
+        findViewById<View>(R.id.radio_bar_pos).visibility = v
     }
 
     private fun setupSpeed() {

@@ -95,4 +95,7 @@
     <string name="version_line">Sürüm %1$s · Güncellemeleri denetle</string>
     <string name="lens_peek">Orijinal</string>
     <string name="cd_move">Merceği yukarı veya aşağı taşı</string>
+    <string name="update_check">Güncellemeleri denetle</string>
+    <string name="update_ready">Yeni sürüm %1$s mevcut – şimdi yüklensin mi?</string>
+    <string name="version_installed">Yüklü: sürüm %1$s</string>
 </resources>

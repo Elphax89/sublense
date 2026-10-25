@@ -584,15 +584,21 @@ class OverlayController(
         val barChoice = panel.findViewById<TextView>(R.id.choice_bar)
         lensChoice.isSelected = prefs.lensMode
         barChoice.isSelected = !prefs.lensMode
+        // "Position der Leiste" nur im Leisten-Modus – in der Linse gibt es keine Leiste.
+        val barPosViews = listOf(panel.findViewById<View>(R.id.label_bar_pos), panel.findViewById<View>(R.id.row_bar_pos))
+        fun syncBarPos() = barPosViews.forEach { it.visibility = if (prefs.lensMode) View.GONE else View.VISIBLE }
+        syncBarPos()
         lensChoice.setOnClickListener {
             prefs.lensMode = true
             lensChoice.isSelected = true
             barChoice.isSelected = false
+            syncBarPos()
         }
         barChoice.setOnClickListener {
             prefs.lensMode = false
             lensChoice.isSelected = false
             barChoice.isSelected = true
+            syncBarPos()
         }
 
         val above = panel.findViewById<TextView>(R.id.choice_above)

@@ -95,4 +95,7 @@
     <string name="version_line">버전 %1$s · 업데이트 확인</string>
     <string name="lens_peek">원문</string>
     <string name="cd_move">렌즈를 위아래로 이동</string>
+    <string name="update_check">업데이트 확인</string>
+    <string name="update_ready">새 버전 %1$s 사용 가능 – 지금 설치할까요?</string>
+    <string name="version_installed">설치됨: 버전 %1$s</string>
 </resources>

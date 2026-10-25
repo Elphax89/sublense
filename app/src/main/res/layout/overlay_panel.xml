@@ -99,10 +99,12 @@
         </LinearLayout>
 
         <TextView
+            android:id="@+id/label_bar_pos"
             style="@style/SubLens.Caption"
             android:text="@string/label_bar" />
 
         <LinearLayout
+            android:id="@+id/row_bar_pos"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal">
