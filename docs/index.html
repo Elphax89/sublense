@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SubLens – Live-Übersetzung als Overlay</title>
+<meta name="description" content="Android-App: übersetzt YouTube-Untertitel, Chats und jeden Text am Bildschirm live – als transparentes Overlay, komplett offline.">
+<meta name="theme-color" content="#0E1116">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<style>
+  :root {
+    --bg: #0E1116; --card: #171B22; --stroke: #232A35;
+    --text: #F5F7FA; --dim: #9AA4B2; --accent: #5EEAD4; --on-accent: #06201C;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text); }
+  body {
+    font: 16px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    padding: max(20px, env(safe-area-inset-top)) 18px 40px;
+  }
+  main { max-width: 560px; margin: 0 auto; }
+  header { display: flex; gap: 14px; align-items: center; margin-top: 8px; }
+  header img { width: 60px; height: 60px; border-radius: 16px; }
+  h1 { margin: 0; font-size: 30px; letter-spacing: -0.02em; }
+  .tagline { margin: 2px 0 0; color: var(--dim); font-size: 14px; }
+  .lead { font-size: 18px; margin: 22px 0 18px; }
+
+  .download {
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    width: 100%; min-height: 60px; border-radius: 18px;
+    background: var(--accent); color: var(--on-accent);
+    font-size: 19px; font-weight: 700; text-decoration: none;
+    box-shadow: 0 10px 30px -12px rgba(94, 234, 212, .55);
+  }
+  .download:active { transform: scale(.985); }
+  .download svg { width: 24px; height: 24px; }
+  .meta { text-align: center; color: var(--dim); font-size: 13px; margin: 10px 0 0; min-height: 1.4em; }
+  .notice {
+    display: none; margin-top: 14px; padding: 12px 14px; border-radius: 14px;
+    background: rgba(248, 113, 113, .1); border: 1px solid rgba(248, 113, 113, .4); font-size: 14px;
+  }
+
+  .phone { display: block; width: min(300px, 82%); margin: 30px auto 8px; }
+  .caption { text-align: center; color: var(--dim); font-size: 13px; margin: 0 0 6px; }
+
+  section { background: var(--card); border: 1px solid var(--stroke); border-radius: 20px; padding: 18px 18px 8px; margin-top: 16px; }
+  h2 { font-size: 17px; margin: 0 0 10px; }
+  ol, ul { margin: 0 0 10px; padding-left: 22px; }
+  li { margin: 0 0 8px; }
+  li::marker { color: var(--accent); font-weight: 700; }
+  .small { color: var(--dim); font-size: 14px; }
+  b { color: var(--text); }
+  footer { text-align: center; margin-top: 28px; color: var(--dim); font-size: 14px; }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <img src="icon.svg" alt="">
+    <div>
+      <h1>SubLens</h1>
+      <p class="tagline">Live-Übersetzung als Overlay · komplett offline</p>
+    </div>
+  </header>
+
+  <p class="lead">Ein schmaler Rahmen über YouTube-Untertiteln, Chats oder jedem anderen Text – darunter steht sofort die Übersetzung. Und mit der Antwortzeile schreibst du in deiner Sprache zurück.</p>
+
+  <a class="download" id="download" href="https://github.com/Elphax89/sublense/releases/latest/download/SubLens.apk">
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M5 20h14v-2H5v2zm14-9h-4V3H9v8H5l7 7 7-7z"/></svg>
+    APK herunterladen
+  </a>
+  <p class="meta" id="meta">Für Android 8 oder neuer</p>
+  <p class="notice" id="notice">SubLens gibt es nur für Android. Öffne diese Seite am Android-Handy, um die App zu installieren.</p>
+
+  <svg class="phone" viewBox="0 0 300 610" role="img" aria-label="Illustration: Rahmen über Untertiteln, darunter die Übersetzung und die Antwortzeile">
+    <defs>
+      <linearGradient id="vid" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#3b2f5c"/><stop offset=".55" stop-color="#1d3b4f"/><stop offset="1" stop-color="#0f2530"/>
+      </linearGradient>
+    </defs>
+    <rect x="4" y="4" width="292" height="602" rx="40" fill="#05070a" stroke="#2a313c" stroke-width="2"/>
+    <rect x="16" y="16" width="268" height="578" rx="30" fill="#0b0e13"/>
+    <!-- Video -->
+    <rect x="16" y="60" width="268" height="168" fill="url(#vid)"/>
+    <circle cx="96" cy="118" r="26" fill="#ffffff" opacity=".08"/>
+    <path d="M150 200 L196 120 L244 200 Z" fill="#ffffff" opacity=".06"/>
+    <rect x="58" y="188" width="184" height="22" rx="4" fill="#000" opacity=".55"/>
+    <text x="150" y="203.5" text-anchor="middle" font-size="12" fill="#fff" font-family="system-ui, sans-serif">I can't believe we made it!</text>
+    <!-- Rahmen -->
+    <rect x="24" y="172" width="252" height="52" rx="10" fill="none" stroke="#5EEAD4" stroke-opacity=".55" stroke-width="1"/>
+    <path d="M24 186 V180 Q24 172 32 172 H42 M258 172 H268 Q276 172 276 180 V186 M276 210 V216 Q276 224 268 224 H258 M42 224 H32 Q24 224 24 216 V210" fill="none" stroke="#5EEAD4" stroke-width="3" stroke-linecap="round"/>
+    <!-- Griff -->
+    <rect x="132" y="158" width="36" height="12" rx="6" fill="#0E1116" stroke="#5EEAD4" stroke-width="1"/>
+    <rect x="142" y="162" width="16" height="1.6" fill="#fff"/><rect x="142" y="165.4" width="16" height="1.6" fill="#fff"/>
+    <!-- Übersetzungsleiste -->
+    <rect x="22" y="230" width="256" height="50" rx="14" fill="#0E1116" stroke="#ffffff" stroke-opacity=".18"/>
+    <rect x="32" y="247" width="42" height="16" rx="5" fill="#5EEAD4" fill-opacity=".14" stroke="#5EEAD4"/>
+    <text x="53" y="258.5" text-anchor="middle" font-size="8.5" font-weight="700" fill="#5EEAD4" font-family="system-ui, sans-serif">EN → DE</text>
+    <text x="158" y="251" text-anchor="middle" font-size="10.5" fill="#F5F7FA" font-family="system-ui, sans-serif">Ich kann nicht glauben,</text>
+    <text x="158" y="265" text-anchor="middle" font-size="10.5" fill="#F5F7FA" font-family="system-ui, sans-serif">dass wir es geschafft haben!</text>
+    <circle cx="246" cy="255" r="6" fill="none" stroke="#fff" stroke-opacity=".8" stroke-width="1.6"/>
+    <path d="M260 250 l9 9 M269 250 l-9 9" stroke="#fff" stroke-opacity=".8" stroke-width="1.6" stroke-linecap="round"/>
+    <!-- Antwortzeile -->
+    <rect x="22" y="298" width="256" height="62" rx="14" fill="#0E1116" stroke="#ffffff" stroke-opacity=".18"/>
+    <text x="34" y="314" font-size="9" fill="#9AA4B2" font-family="system-ui, sans-serif">When will we see each other again?</text>
+    <rect x="32" y="327" width="42" height="16" rx="5" fill="#5EEAD4" fill-opacity=".14" stroke="#5EEAD4"/>
+    <text x="53" y="338.5" text-anchor="middle" font-size="8.5" font-weight="700" fill="#5EEAD4" font-family="system-ui, sans-serif">DE → EN</text>
+    <rect x="80" y="322" width="164" height="28" rx="8" fill="#ffffff" fill-opacity=".1"/>
+    <text x="88" y="340" font-size="10" fill="#F5F7FA" font-family="system-ui, sans-serif">Wann sehen wir uns wieder?</text>
+    <rect x="252" y="327" width="12" height="15" rx="2" fill="none" stroke="#5EEAD4" stroke-width="1.6"/>
+    <rect x="256" y="323" width="12" height="15" rx="2" fill="#0E1116" stroke="#5EEAD4" stroke-width="1.6"/>
+    <!-- App darunter -->
+    <rect x="30" y="384" width="150" height="34" rx="12" fill="#1c222c"/>
+    <rect x="120" y="428" width="150" height="34" rx="12" fill="#1f3b37"/>
+    <rect x="30" y="472" width="120" height="34" rx="12" fill="#1c222c"/>
+    <rect x="24" y="540" width="252" height="36" rx="18" fill="#1c222c"/>
+  </svg>
+  <p class="caption">So sieht es aus: Rahmen, Übersetzung und Antwortzeile über jeder App.</p>
+
+  <section>
+    <h2>Installieren</h2>
+    <ol>
+      <li>Oben auf <b>APK herunterladen</b> tippen und die Datei öffnen.</li>
+      <li>Android fragt beim ersten Mal, ob der Browser Apps installieren darf → <b>Zulassen</b>.</li>
+      <li><b>Installieren</b> tippen. Falls Play Protect warnt: <i>Trotzdem installieren</i> (die App kommt nicht aus dem Play Store).</li>
+      <li>SubLens öffnen, „Über anderen Apps anzeigen“ erlauben, dann <b>Übersetzer starten</b>.</li>
+    </ol>
+    <p class="small">Updates installierst du genauso – einfach die neue APK über die alte, Einstellungen bleiben erhalten.</p>
+  </section>
+
+  <section>
+    <h2>Was SubLens kann</h2>
+    <ul>
+      <li><b>Rahmen</b> immer bildschirmbreit, verschiebbar, Höhe anpassbar – im Hoch- und Querformat. Das Video bleibt frei.</li>
+      <li><b>Übersetzung</b> in einer Leiste über oder unter dem Rahmen, Sprache automatisch erkannt.</li>
+      <li><b>Antwortzeile:</b> in deiner Sprache schreiben, Kopieren tippen – die Übersetzung liegt in der Zwischenablage. Einfach in Telegram, WeChat &amp; Co. einfügen.</li>
+      <li><b>Offline:</b> Texterkennung und Übersetzung laufen direkt am Handy. Kein Server, kein Konto, nichts wird gespeichert.</li>
+      <li>Über 50 Sprachen, jedes Sprachpaket wird nur einmal geladen.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Gut zu wissen</h2>
+    <ul class="small">
+      <li>Nur für Android – iOS erlaubt keine Overlays über anderen Apps.</li>
+      <li>Netflix, Disney+ und Banking-Apps sperren die Bildschirmfreigabe; dort erkennt SubLens nichts.</li>
+      <li>Die Texterkennung liest lateinische, chinesische, japanische, koreanische und Devanagari-Schrift.</li>
+    </ul>
+  </section>
+
+  <footer>
+    <a id="source" href="https://github.com/Elphax89/sublense">Quellcode auf GitHub</a>
+  </footer>
+</main>
+
+<script>
+  // Repo aus der Pages-Adresse ableiten (owner.github.io/repo/), damit die Links auch bei anderem Namen stimmen.
+  (function () {
+    var owner = 'Elphax89', repo = 'sublense';
+    var host = location.hostname.match(/^([^.]+)\.github\.io$/i);
+    var path = location.pathname.split('/').filter(Boolean);
+    if (host) { owner = host[1]; if (path.length) repo = path[0]; }
+    var base = 'https://github.com/' + owner + '/' + repo;
+    document.getElementById('download').href = base + '/releases/latest/download/SubLens.apk';
+    document.getElementById('source').href = base;
+
+    if (!/android/i.test(navigator.userAgent)) document.getElementById('notice').style.display = 'block';
+
+    fetch('https://api.github.com/repos/' + owner + '/' + repo + '/releases/latest')
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (rel) {
+        if (!rel) return;
+        var apk = (rel.assets || []).filter(function (a) { return /\.apk$/i.test(a.name); })[0];
+        var parts = [rel.name || rel.tag_name];
+        if (apk) parts.push((apk.size / 1048576).toFixed(1).replace('.', ',') + ' MB');
+        if (rel.published_at) parts.push(new Date(rel.published_at).toLocaleDateString('de-AT'));
+        parts.push('Android 8+');
+        document.getElementById('meta').textContent = parts.join(' · ');
+      })
+      .catch(function () {});
+  })();
+</script>
+</body>
+</html>

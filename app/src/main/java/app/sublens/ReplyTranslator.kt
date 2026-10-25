@@ -1,0 +1,98 @@
+package app.sublens
+
+import android.os.Handler
+import android.os.Looper
+import android.util.Log
+import com.google.mlkit.common.model.DownloadConditions
+import com.google.mlkit.nl.translate.Translation
+import com.google.mlkit.nl.translate.Translator
+import com.google.mlkit.nl.translate.TranslatorOptions
+
+/**
+ * Übersetzt die eigene Antwort (eigene Sprache → Sprache des Chats).
+ * Nutzt dieselben Offline-Sprachpakete wie die Untertitel-Übersetzung.
+ */
+class ReplyTranslator(private val prefs: Prefs) {
+
+    private val main = Handler(Looper.getMainLooper())
+    private val translators = LinkedHashMap<String, Translator>()
+    private val cache = object : LinkedHashMap<String, String>(32, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, String>?): Boolean = size > 40
+    }
+    private var closed = false
+
+    /**
+     * [onSlow] meldet sich, wenn es länger dauert (meist: Sprachpaket wird geladen).
+     * [onDone] liefert die Übersetzung oder null bei einem Fehler.
+     */
+    fun translate(text: String, from: String, to: String, onSlow: () -> Unit, onDone: (String?) -> Unit) {
+        if (from == to) {
+            onDone(text)
+            return
+        }
+        val pair = "$from>$to"
+        cache["$pair|$text"]?.let {
+            onDone(it)
+            return
+        }
+
+        val translator = translatorFor(from, to)
+        var finished = false
+        val slow = Runnable { if (!finished && !closed) onSlow() }
+        main.postDelayed(slow, SLOW_AFTER_MS)
+
+        fun done(result: String?) {
+            finished = true
+            main.removeCallbacks(slow)
+            if (!closed) onDone(result)
+        }
+
+        val conditions = DownloadConditions.Builder().apply { if (prefs.wifiOnly) requireWifi() }.build()
+        translator.downloadModelIfNeeded(conditions)
+            .addOnSuccessListener {
+                if (closed) return@addOnSuccessListener
+                translator.translate(text)
+                    .addOnSuccessListener { result ->
+                        cache["$pair|$text"] = result
+                        done(result)
+                    }
+                    .addOnFailureListener { e ->
+                        Log.w(TAG, "Antwort-Übersetzung fehlgeschlagen", e)
+                        done(null)
+                    }
+            }
+            .addOnFailureListener { e ->
+                Log.w(TAG, "Sprachpaket für Antwort fehlt", e)
+                done(null)
+            }
+    }
+
+    private fun translatorFor(from: String, to: String): Translator {
+        val pair = "$from>$to"
+        translators[pair]?.let { return it }
+        while (translators.size >= MAX_TRANSLATORS) {
+            val oldest = translators.keys.first()
+            translators.remove(oldest)?.close()
+        }
+        val options = TranslatorOptions.Builder().setSourceLanguage(from).setTargetLanguage(to).build()
+        return Translation.getClient(options).also { translators[pair] = it }
+    }
+
+    fun close() {
+        closed = true
+        main.removeCallbacksAndMessages(null)
+        for (t in translators.values) {
+            try {
+                t.close()
+            } catch (_: Exception) {
+            }
+        }
+        translators.clear()
+    }
+
+    companion object {
+        private const val TAG = "SubLens"
+        private const val SLOW_AFTER_MS = 700L
+        private const val MAX_TRANSLATORS = 3
+    }
+}

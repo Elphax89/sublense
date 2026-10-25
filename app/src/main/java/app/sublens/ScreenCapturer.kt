@@ -1,0 +1,147 @@
+package app.sublens
+
+import android.graphics.Bitmap
+import android.graphics.PixelFormat
+import android.graphics.Rect
+import android.hardware.display.DisplayManager
+import android.hardware.display.VirtualDisplay
+import android.media.ImageReader
+import android.media.projection.MediaProjection
+import android.os.Handler
+import android.os.HandlerThread
+import java.nio.ByteBuffer
+
+/**
+ * Liest den Bildschirm über die Bildschirmfreigabe (MediaProjection).
+ * Es wird nichts gespeichert: Jedes Bild liegt nur kurz im Arbeitsspeicher,
+ * davon wird nur der Rahmen-Ausschnitt kopiert, der Rest sofort verworfen.
+ *
+ * Alle Zugriffe auf Reader/Display laufen auf dem eigenen [handler]-Thread.
+ */
+class ScreenCapturer(
+    private val projection: MediaProjection,
+    private val onStopped: () -> Unit,
+) {
+    private val thread = HandlerThread("SubLensCapture").apply { start() }
+    val handler = Handler(thread.looper)
+
+    private var reader: ImageReader? = null
+    private var virtualDisplay: VirtualDisplay? = null
+    private var width = 0
+    private var height = 0
+    private var outBuffer: ByteBuffer? = null
+
+    private val callback = object : MediaProjection.Callback() {
+        override fun onStop() {
+            // z. B. über den "Teilen beenden"-Chip in der Statusleiste
+            onStopped()
+        }
+    }
+
+    /** Muss genau einmal aufgerufen werden (ab Android 14 ist jede Freigabe nur einmal nutzbar). */
+    fun start(w: Int, h: Int, dpi: Int) {
+        projection.registerCallback(callback, handler)
+        val r = ImageReader.newInstance(w, h, PixelFormat.RGBA_8888, 2)
+        reader = r
+        width = w
+        height = h
+        virtualDisplay = projection.createVirtualDisplay(
+            "SubLens",
+            w,
+            h,
+            dpi,
+            DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
+            r.surface,
+            null,
+            handler,
+        )
+    }
+
+    /** Nach dem Drehen: gleiche Freigabe weiterverwenden, nur Größe anpassen. */
+    fun resize(w: Int, h: Int, dpi: Int) {
+        handler.post {
+            if (w == width && h == height) return@post
+            val vd = virtualDisplay ?: return@post
+            val old = reader
+            val r = ImageReader.newInstance(w, h, PixelFormat.RGBA_8888, 2)
+            vd.resize(w, h, dpi)
+            vd.surface = r.surface
+            reader = r
+            width = w
+            height = h
+            try {
+                old?.close()
+            } catch (_: Exception) {
+            }
+        }
+    }
+
+    /**
+     * Holt das neueste Bild und schneidet den Bereich [crop] aus.
+     * Gibt null zurück, wenn sich seit dem letzten Mal nichts geändert hat.
+     * Nur auf dem [handler]-Thread aufrufen.
+     */
+    fun grab(crop: Rect): Bitmap? {
+        val r = reader ?: return null
+        val image = try {
+            r.acquireLatestImage()
+        } catch (_: Exception) {
+            null
+        } ?: return null
+
+        try {
+            if (image.width != width || image.height != height) return null
+            val c = Rect(crop)
+            if (!c.intersect(0, 0, image.width, image.height)) return null
+            val w = c.width()
+            val h = c.height()
+            if (w < 32 || h < 16) return null
+
+            val plane = image.planes[0]
+            if (plane.pixelStride != 4) return null
+            val rowStride = plane.rowStride
+            val src = plane.buffer.duplicate()
+
+            val needed = w * h * 4
+            val out = outBuffer?.takeIf { it.capacity() >= needed }
+                ?: ByteBuffer.allocateDirect(needed).also { outBuffer = it }
+            out.clear()
+            for (y in 0 until h) {
+                val start = (c.top + y) * rowStride + c.left * 4
+                src.limit(start + w * 4)
+                src.position(start)
+                out.put(src)
+            }
+            out.flip()
+
+            val bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+            bitmap.copyPixelsFromBuffer(out)
+            return bitmap
+        } catch (_: Exception) {
+            return null
+        } finally {
+            image.close()
+        }
+    }
+
+    fun release() {
+        handler.removeCallbacksAndMessages(null)
+        handler.post {
+            try {
+                virtualDisplay?.release()
+            } catch (_: Exception) {
+            }
+            virtualDisplay = null
+            try {
+                reader?.close()
+            } catch (_: Exception) {
+            }
+            reader = null
+            try {
+                projection.unregisterCallback(callback)
+            } catch (_: Exception) {
+            }
+        }
+        thread.quitSafely()
+    }
+}

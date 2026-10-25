@@ -1,0 +1,68 @@
+name: APK bauen und veröffentlichen
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: APK bauen
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease --stacktrace
+          cp app/build/outputs/apk/release/app-release.apk SubLens.apk
+
+      - name: Als neueste Version veröffentlichen
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: SubLens 0.2.${{ github.run_number }}
+          make_latest: true
+          files: SubLens.apk
+          body: |
+            **Installieren:** Am Android-Handy unten auf **SubLens.apk** tippen → herunterladen → öffnen → *Installieren*.
+            Beim ersten Mal fragt Android, ob der Browser Apps installieren darf → erlauben.
+
+            Ein Update installiert einfach über die vorhandene App, Einstellungen bleiben erhalten.
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SubLens-APK
+          path: SubLens.apk
+
+  # Download-Seite (GitHub Pages). Läuft unabhängig: fehlt die Pages-Einstellung, ist die APK trotzdem veröffentlicht.
+  pages:
+    needs: apk
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+      - id: deploy
+        uses: actions/deploy-pages@v4
