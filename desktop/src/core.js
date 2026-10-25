@@ -212,17 +212,38 @@ async function translate(texts, src, tgt) {
   });
   if (todo.length) {
     const tr = await getTranslator();
-    const inputs = todo.map((i) => texts[i]);
-    const res = await tr(inputs, { src_lang: s.nllb, tgt_lang: t.nllb, max_new_tokens: 256 });
-    const arr = Array.isArray(res) ? res : [res];
-    todo.forEach((i, k) => {
-      const value = (arr[k] && arr[k].translation_text) || texts[i];
+    // One text at a time: NLLB in Transformers.js mixes up languages and loops when texts are batched.
+    for (const i of todo) {
+      const text = texts[i];
+      const res = await tr(text, {
+        src_lang: s.nllb,
+        tgt_lang: t.nllb,
+        // A translation is rarely much longer than the original – this also stops runaway repetition.
+        max_new_tokens: Math.min(256, Math.ceil(text.length * 1.6) + 16),
+        no_repeat_ngram_size: 4,
+      });
+      const first = Array.isArray(res) ? res[0] : res;
+      const value = cleanup((first && first.translation_text) || text);
       out[i] = value;
-      cache.set(`${s.code}>${t.code}|${texts[i]}`, value);
-    });
-    if (cache.size > 2000) cache.delete(cache.keys().next().value);
+      cache.set(`${s.code}>${t.code}|${text}`, value);
+      if (cache.size > 2000) cache.delete(cache.keys().next().value);
+    }
   }
   return out;
+}
+
+/** Removes a repeated tail (a sentence the model said twice). */
+function cleanup(text) {
+  const parts = text.split(/(?<=[.!?。！？])\s*/).filter(Boolean);
+  const seen = new Set();
+  const kept = [];
+  for (const p of parts) {
+    const key = p.trim().toLowerCase();
+    if (seen.has(key)) break;
+    seen.add(key);
+    kept.push(p);
+  }
+  return kept.join(' ').trim() || text;
 }
 
 /** Is the translation model already on disk? */

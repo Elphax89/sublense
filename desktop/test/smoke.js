@@ -45,5 +45,10 @@ function image() {
   const zh = await core.translate(['Sounds great! Saturday at 7?'], 'en', 'zh-Hant');
   note(`en→zh-Hant ${Date.now() - t} ms: ${JSON.stringify(zh)}`);
   if (!/weekend/i.test(en[0])) fail('de→en translation looks wrong');
+  if (!/restaurant/i.test(en[1]) || !/saturday/i.test(en[2])) fail('de→en translation looks wrong');
+  [...en, ...again, ...zh].forEach((x, i) => {
+    if (x.length > 90) fail(`translation ${i} is far too long (runaway): ${x}`);
+  });
+  if (!/saturday/i.test(again[1])) fail('ja→en translation looks wrong');
   await core.shutdown();
 })().catch((e) => fail(e.stack.replace(/\n/g, ' | ')));
