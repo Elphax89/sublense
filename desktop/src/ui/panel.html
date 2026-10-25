@@ -1,0 +1,58 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:">
+<title>SubLens</title>
+<link rel="stylesheet" href="panel.css">
+</head>
+<body>
+<main>
+  <header>
+    <img src="../../assets/icon.png" alt="">
+    <div><h1>SubLens</h1><p id="tagline"></p></div>
+    <span id="version"></span>
+  </header>
+
+  <div id="update" class="banner" hidden><span id="updateText"></span><button id="updateBtn" class="small primary"></button></div>
+  <div id="perm" class="banner warn" hidden><span id="permText"></span><button id="permBtn" class="small"></button></div>
+
+  <button id="lensBtn" class="big"></button>
+  <p id="hotkey" class="note"></p>
+
+  <section>
+    <label id="lFrom"></label>
+    <div class="row">
+      <select id="from"></select>
+      <button id="swap" class="icon" title=""><svg viewBox="0 0 24 24"><path d="M8 3 3.5 7.5l1.4 1.4L7 6.8V16h2V6.8l2.1 2.1 1.4-1.4zm7 5v9.2l-2.1-2.1-1.4 1.4L16 21l4.5-4.5-1.4-1.4-2.1 2.1V8z"/></svg></button>
+    </div>
+    <label id="lTo"></label>
+    <select id="to"></select>
+  </section>
+
+  <section>
+    <label id="lMode"></label>
+    <div class="choices">
+      <button id="modeChat" class="choice"><b></b><small></small></button>
+      <button id="modeVideo" class="choice"><b></b><small></small></button>
+    </div>
+    <label id="lColour"></label>
+    <div id="swatches"></div>
+    <label id="lReply"></label>
+    <div class="choices two"><button id="replyOn" class="choice"></button><button id="replyOff" class="choice"></button></div>
+  </section>
+
+  <section>
+    <label id="lModel"></label>
+    <p id="modelText"></p>
+    <div id="bar" hidden><i id="barFill"></i></div>
+    <button id="modelBtn" class="small primary" hidden></button>
+    <p id="ocrText" class="note"></p>
+    <button id="deleteBtn" class="link"></button>
+  </section>
+
+  <footer><span id="footer"></span> · <a id="gh" href="#">GitHub</a></footer>
+</main>
+<script src="panel.js"></script>
+</body>
+</html>

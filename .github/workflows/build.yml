@@ -3,6 +3,8 @@ name: Build and release APK
 on:
   push:
     branches: [main]
+    # The desktop app has its own workflow – no new Android release for desktop-only changes.
+    paths-ignore: ["desktop/**", ".github/workflows/desktop.yml"]
   workflow_dispatch:
 
 permissions:

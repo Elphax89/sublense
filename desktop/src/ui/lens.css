@@ -1,0 +1,43 @@
+:root { --lens: #5EEAD4; --bar: rgba(14, 17, 22, 0.92); --stroke: rgba(255, 255, 255, 0.18); }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+[hidden] { display: none !important; }
+html, body { width: 100%; height: 100%; background: transparent; overflow: hidden; font-family: system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", "PingFang SC", sans-serif; color: #F5F7FA; user-select: none; }
+#wrap { position: absolute; inset: 0; display: flex; flex-direction: column; }
+#wrap.above { flex-direction: column-reverse; }
+#frame { position: relative; flex: 1; min-height: 80px; }
+#border { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+#boxes { position: absolute; inset: 6px; pointer-events: none; overflow: hidden; }
+.box { position: absolute; border-radius: 4px; padding: 1px 4px; line-height: 1.17; white-space: normal; overflow: hidden; display: flex; align-items: center; }
+.box span { display: block; width: 100%; }
+#boxes.peek .box { visibility: hidden; }
+button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; }
+svg { fill: currentColor; stroke: currentColor; }
+.round { position: absolute; width: 24px; height: 24px; border-radius: 50%; background: #0E1116; border: 1.4px solid var(--lens); color: var(--lens); display: flex; align-items: center; justify-content: center; }
+.round svg { width: 15px; height: 15px; stroke: none; }
+#move { left: 8px; bottom: 8px; cursor: move; }
+#ctl { position: absolute; right: 26px; bottom: 7px; height: 26px; border-radius: 13px; background: var(--bar); border: 1px solid var(--stroke); display: flex; align-items: center; padding: 0 4px; gap: 2px; }
+#ctl button { width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; opacity: 0.9; }
+#ctl button svg { width: 15px; height: 15px; stroke: none; }
+#ctl #btnClose svg { fill: none; stroke: #fff; width: 13px; height: 13px; }
+#ctl #btnVideo.off { opacity: 0.45; }
+#ctl #btnVideo.on svg { fill: var(--lens); }
+#ctl #btnSwap[hidden] { display: none; }
+#grip { position: absolute; right: 2px; bottom: 2px; width: 20px; height: 20px; cursor: nwse-resize; display: flex; align-items: center; justify-content: center; color: var(--lens); }
+#grip svg { width: 12px; height: 12px; fill: none; stroke-width: 1.6; stroke-linecap: round; }
+#status { position: absolute; left: 50%; top: 10px; transform: translateX(-50%); max-width: calc(100% - 40px); background: var(--bar); border: 1px solid var(--stroke); border-radius: 14px; padding: 5px 12px; font-size: 12.5px; display: flex; gap: 10px; align-items: center; white-space: nowrap; }
+#status[hidden] { display: none; }
+#statusText { overflow: hidden; text-overflow: ellipsis; }
+#statusBtn { background: var(--lens); color: #06201C; font-weight: 700; border-radius: 9px; padding: 3px 10px; font-size: 12px; }
+#composer { height: 64px; flex: none; margin: 2px 2px 0; background: #0E1116; border: 1px solid var(--stroke); border-radius: 16px; display: flex; align-items: center; gap: 8px; padding: 6px 4px 6px 8px; }
+#wrap.above #composer { margin: 0 2px 2px; }
+#composer[hidden] { display: none; }
+#cLeft { display: flex; flex-direction: column; gap: 4px; width: 78px; flex: none; }
+#chip { height: 22px; border-radius: 7px; background: rgba(94, 234, 212, 0.14); border: 1px solid var(--lens); color: var(--lens); font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; white-space: nowrap; overflow: hidden; }
+#peek { height: 22px; border-radius: 11px; background: #1b222c; border: 1px solid var(--stroke); font-size: 11px; font-weight: 700; }
+#peek.on { color: var(--lens); border-color: var(--lens); background: rgba(94, 234, 212, 0.14); }
+#input { flex: 1; min-width: 0; height: 46px; border-radius: 11px; border: 0; outline: none; background: rgba(255, 255, 255, 0.08); color: #F5F7FA; padding: 0 12px; font-size: 14.5px; user-select: text; }
+#input::placeholder { color: #9AA4B2; }
+#input.done::placeholder { color: var(--lens); }
+#copy { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; color: var(--lens); flex: none; }
+#copy svg { width: 22px; height: 22px; fill: none; stroke-width: 2; }
+#video { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }

@@ -1,0 +1,57 @@
+{
+  "name": "sublens-desktop",
+  "productName": "SubLens",
+  "version": "0.1.0",
+  "description": "Live screen translation for Windows and macOS – translates subtitles, chats and any text on screen in place, offline.",
+  "author": "Elphax89",
+  "license": "MIT",
+  "homepage": "https://github.com/Elphax89/sublense",
+  "main": "src/main.js",
+  "scripts": {
+    "postinstall": "node scripts/stub-sharp.js",
+    "start": "electron .",
+    "smoke": "node test/smoke.js",
+    "dist:win": "electron-builder --win nsis portable --x64 --publish never",
+    "dist:mac": "electron-builder --mac dmg --arm64 --publish never"
+  },
+  "dependencies": {
+    "@huggingface/transformers": "4.3.1",
+    "tesseract.js": "7.0.0",
+    "tinyld": "1.3.4"
+  },
+  "devDependencies": {
+    "electron": "44.7.0",
+    "electron-builder": "26.17.0"
+  },
+  "build": {
+    "appId": "app.sublens.desktop",
+    "productName": "SubLens",
+    "copyright": "© Elphax89 – MIT license",
+    "directories": { "output": "dist", "buildResources": "build" },
+    "files": ["src/**/*", "assets/**/*", "package.json", "!**/*.map"],
+    "asarUnpack": ["**/*.node", "**/onnxruntime-node/**", "**/tesseract.js/**", "**/tesseract.js-core/**"],
+    "npmRebuild": false,
+    "win": {
+      "artifactName": "SubLens-${version}-Windows-${arch}-${target}.${ext}",
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "SubLens-Setup-Windows.${ext}"
+    },
+    "portable": { "artifactName": "SubLens-Portable-Windows.${ext}" },
+    "mac": {
+      "category": "public.app-category.productivity",
+      "icon": "build/icon.png",
+      "identity": "-",
+      "hardenedRuntime": false,
+      "artifactName": "SubLens-macOS-${arch}.${ext}",
+      "extendInfo": {
+        "NSScreenCaptureUsageDescription": "SubLens reads the text under the lens to translate it. Nothing is saved or uploaded."
+      }
+    },
+    "dmg": { "title": "SubLens" }
+  }
+}

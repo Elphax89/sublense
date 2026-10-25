@@ -1,0 +1,99 @@
+name: Desktop app (Windows + macOS)
+
+on:
+  push:
+    branches: [main]
+    paths: ["desktop/**", ".github/workflows/desktop.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: desktop
+  cancel-in-progress: true
+
+jobs:
+  # Reads and translates a test picture with plain Node: text recognition, language detection, NLLB translation.
+  engine:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: desktop
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm ci --no-audit --no-fund
+      - uses: actions/cache@v4
+        with:
+          path: /tmp/sublens-smoke
+          key: sublens-smoke-nllb-600m-q8-v1
+      - name: Smoke test
+        run: npm run smoke
+
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            target: --win nsis portable --x64
+            files: desktop/dist/*.exe
+          - os: macos-latest
+            target: --mac dmg --arm64
+            files: desktop/dist/*.dmg
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: desktop
+        shell: bash
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm ci --no-audit --no-fund
+      - name: Set version
+        run: npm version "0.1.${{ github.run_number }}" --no-git-tag-version --allow-same-version
+      - name: Package
+        run: npx electron-builder ${{ matrix.target }} --publish never
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-${{ matrix.os }}
+          path: ${{ matrix.files }}
+          if-no-files-found: error
+
+  # One fixed release "desktop-latest" with stable download links. Not marked as latest,
+  # so the Android app keeps finding its own update under releases/latest.
+  release:
+    needs: [engine, build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: out
+          merge-multiple: true
+      - name: Publish desktop-latest
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          ls -la out
+          gh release delete desktop-latest --cleanup-tag -y || true
+          cat > notes.md <<'NOTES'
+          **SubLens for Windows and macOS** – a transparent lens you drag over subtitles, chats or any text on your screen. The translation appears right on top of the original. Offline after a one-time download.
+
+          - **Windows 10/11:** `SubLens-Setup-Windows.exe` (installer) or `SubLens-Portable-Windows.exe` (no installation). Windows SmartScreen may warn because the app isn't signed: *More info → Run anyway*.
+          - **macOS (Apple Silicon, M1 or newer):** `SubLens-macOS-arm64.dmg`. Open the DMG, drag SubLens to Applications. The first time: right-click SubLens → *Open* (or System Settings → Privacy & Security → *Open Anyway*), then allow *Screen Recording*.
+
+          The translation model (about 900 MB) downloads once when you first translate. Android: see the latest release.
+          NOTES
+          gh release create desktop-latest out/* \
+            --title "SubLens Desktop 0.1.${{ github.run_number }}" \
+            --notes-file notes.md \
+            --target "${{ github.sha }}" \
+            --latest=false

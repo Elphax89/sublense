@@ -1,6 +1,6 @@
 # SubLens
 
-**Live screen translation for Android.** A transparent lens you drag over YouTube subtitles, chats or any other text on screen. The translation appears right on top of the original, in its colours and at roughly its size. Reply in the other person's language with one tap. And on holiday, point the camera at a menu, a sign or the QR code on the table.
+**Live screen translation for Android, Windows and Mac.** A transparent lens you drag over YouTube subtitles, chats or any other text on screen. The translation appears right on top of the original, in its colours and at roughly its size. Reply in the other person's language with one tap. And on holiday, point the camera at a menu, a sign or the QR code on the table.
 
 Free, open source, fully offline. No account, no ads, nothing leaves your phone.
 
@@ -22,6 +22,21 @@ Download page with instructions: **https://elphax89.github.io/sublense/**
 > **Switch greyed out ("Controlled by restricted setting")?** Android protects apps from outside the Play Store this way. Unlock it once: *Settings → Apps → SubLens → ⋮ (top right) → Allow restricted settings*, then turn on *Display over other apps*. [Google's guide](https://support.google.com/android/answer/12623953)
 
 **Updates:** SubLens checks for new versions by itself. The button at the bottom of the app turns into *New version available – install now?*. One tap downloads and installs it, and your settings are kept. The first time, Android asks you to let SubLens install apps.
+
+## 💻 Windows and Mac
+
+SubLens also runs on your computer: the same lens on top of any window – subtitles, chats, websites, games.
+
+| | Download |
+|---|---|
+| **Windows 10/11** | [**Installer (.exe)**](https://github.com/Elphax89/sublense/releases/download/desktop-latest/SubLens-Setup-Windows.exe) · [Portable, no install (.exe)](https://github.com/Elphax89/sublense/releases/download/desktop-latest/SubLens-Portable-Windows.exe) |
+| **macOS** (Apple Silicon, M1 or newer) | [**SubLens-macOS-arm64.dmg**](https://github.com/Elphax89/sublense/releases/download/desktop-latest/SubLens-macOS-arm64.dmg) |
+
+- **Windows:** SmartScreen may warn because the app isn't signed – *More info → Run anyway*.
+- **macOS:** drag SubLens to Applications. The first time, right-click SubLens → *Open* (or *System Settings → Privacy & Security → Open Anyway*), then allow **Screen Recording** for SubLens and start it again.
+- Show or hide the lens with **Ctrl+Shift+L** (⌘⇧L on a Mac), or from the tray / menu bar icon.
+- The lens is invisible to screen capture, so it never reads its own translations and never flickers. Drag ✥ to move it and the corner to resize it; ▶ switches between chat and video mode; the reply line copies your answer in the chat's language.
+- Text recognition with Tesseract, translation with Meta's NLLB‑200 model (about 900 MB, downloaded once) – everything runs on your computer.
 
 ## Features
 
@@ -97,6 +112,8 @@ Releases are signed with a private key that lives only in the repository's GitHu
 | `ChineseScript.kt` | Simplified ↔ traditional Chinese |
 | `Updater.kt` | Checks GitHub releases and installs updates |
 | `Prefs.kt`, `Languages.kt` | Settings, language lists |
+
+The desktop app lives in [`desktop/`](desktop): Electron, [Tesseract.js](https://github.com/naptha/tesseract.js) for text recognition and [Transformers.js](https://github.com/huggingface/transformers.js) with NLLB‑200 for translation. [`desktop.yml`](.github/workflows/desktop.yml) tests the engine and builds the Windows installer and macOS DMG into the `desktop-latest` release. Run it locally with `cd desktop && npm install && npm start`.
 
 ## License
 

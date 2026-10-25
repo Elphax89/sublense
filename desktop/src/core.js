@@ -68,16 +68,31 @@ async function ocr(png, langs) {
   for (const block of res.data.blocks || []) {
     for (const para of block.paragraphs || []) {
       for (const line of para.lines || []) {
-        const words = (line.words || []).filter((wd) => wd.confidence >= 35 && wd.text.trim());
-        const text = (words.length ? words.map((wd) => wd.text).join(isCJK(langs) ? '' : ' ') : line.text).trim();
+        let words = (line.words || []).filter((wd) => wd.confidence >= 35 && wd.text.trim());
+        // Times, counters and ticks at the end of chat lines ("… 11:31", "↩ 2 11:33 ✓✓") are not translated.
+        while (words.length && META.test(words[words.length - 1].text.trim())) words = words.slice(0, -1);
+        if (!words.length) continue;
+        const text = words.map((wd) => wd.text).join(isCJK(langs) ? '' : ' ').trim();
         if (countLetters(text) < 2 || line.confidence < 40) continue;
         const b = line.bbox;
-        lines.push({ text, x0: b.x0, y0: b.y0, x1: b.x1, y1: b.y1, h: b.y1 - b.y0 });
+        const x0 = Math.min(...words.map((wd) => wd.bbox.x0));
+        const x1 = Math.max(...words.map((wd) => wd.bbox.x1));
+        const h = b.y1 - b.y0;
+        lines.push({ text, x0, y0: b.y0, x1, y1: b.y1, h, font: fontSize(text, h, langs) });
       }
     }
   }
   lines.sort((a, b) => a.y0 - b.y0 || a.x0 - b.x0);
   return groupLines(lines, isCJK(langs) ? '' : ' ');
+}
+
+/**
+ * Font size from Tesseract's line box: the box reaches from the tallest letter to the lowest one,
+ * so a line without descenders (g, p, y …) is only about ¾ of the font size high. CJK glyphs fill the box.
+ */
+function fontSize(text, h, langs) {
+  if (isCJK(langs) && /[\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]/.test(text)) return h / 0.92;
+  return /[gjpqyQ(),;\[\]{}|ğşçţ]/.test(text) ? h / 0.96 : h / 0.76;
 }
 
 /** Lines close above each other with horizontal overlap form one block. */
@@ -95,18 +110,22 @@ function groupLines(lines, sep) {
         last.x1 = Math.max(last.x1, ln.x1);
         last.y1 = ln.y1;
         last.lineHeight = (last.lineHeight * (last.lines.length - 1) + ln.h) / last.lines.length;
+        last.font = (last.font * (last.lines.length - 1) + ln.font) / last.lines.length;
         continue;
       }
     }
-    blocks.push({ lines: [ln.text], x0: ln.x0, y0: ln.y0, x1: ln.x1, y1: ln.y1, lineHeight: ln.h });
+    blocks.push({ lines: [ln.text], x0: ln.x0, y0: ln.y0, x1: ln.x1, y1: ln.y1, lineHeight: ln.h, font: ln.font || ln.h });
   }
   return blocks.map((b) => ({
     text: b.lines.join(sep).replace(/\s+/g, ' ').trim(),
     rect: { x: b.x0, y: b.y0, w: b.x1 - b.x0, h: b.y1 - b.y0 },
     lineHeight: b.lineHeight,
+    fontSize: b.font,
     lineCount: b.lines.length,
   }));
 }
+
+const META = /^[\d:.,/↩↪✓✔√·•+\-()|]+$/;
 
 function isCJK(langs) {
   return /chi_|jpn/.test(langs);
@@ -238,4 +257,13 @@ async function deleteDownloads() {
   cache.clear();
 }
 
-module.exports = { init, ocr, detect, translate, getTranslator, modelStatus, deleteDownloads, groupLines, MODEL_ID };
+/** Stops the text recognition worker (so the process can exit). */
+async function shutdown() {
+  if (worker) {
+    await worker.terminate().catch(() => {});
+    worker = null;
+    workerLangs = '';
+  }
+}
+
+module.exports = { init, ocr, detect, translate, getTranslator, modelStatus, deleteDownloads, shutdown, groupLines, MODEL_ID };

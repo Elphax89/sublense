@@ -52,6 +52,8 @@
   b { color: var(--text); }
   footer { text-align: center; margin-top: 28px; color: var(--dim); font-size: 14px; }
   a { color: var(--accent); }
+  .dl2 { display: inline-flex; align-items: center; justify-content: center; min-height: 46px; padding: 0 18px; margin: 4px 8px 8px 0; border-radius: 14px;
+    border: 1.5px solid var(--accent); background: rgba(94, 234, 212, .12); color: var(--accent); font-weight: 700; text-decoration: none; }
 </style>
 </head>
 <body>
@@ -71,10 +73,19 @@
     Download APK
   </a>
   <p class="meta" id="meta">For Android 8 or newer</p>
-  <p class="notice" id="notice">SubLens is for Android only. Open this page on your Android phone to install it.</p>
+  <p class="notice" id="notice">This is the Android app – open this page on your phone to install it. On this computer? Get the <a href="#desktop">Windows or Mac version</a> below.</p>
 
   <video class="demo" src="demo.mp4" autoplay muted loop playsinline preload="metadata" aria-label="Demo: subtitles and a chat translated in place, a reply copied in the other language, a Chinese menu translated with the camera and an order placed after scanning a QR code"></video>
   <p class="caption">Subtitles, chats, menus and QR ordering pages – translated in place.</p>
+
+  <section id="desktop">
+    <h2>Windows and Mac</h2>
+    <p class="small">The same lens on your computer, on top of any window.</p>
+    <p><a class="dl2" href="https://github.com/Elphax89/sublense/releases/download/desktop-latest/SubLens-Setup-Windows.exe">Windows installer</a>
+       <a class="dl2" href="https://github.com/Elphax89/sublense/releases/download/desktop-latest/SubLens-macOS-arm64.dmg">macOS (Apple Silicon)</a></p>
+    <p class="small">Windows: if SmartScreen warns, <i>More info → Run anyway</i>. No installation wanted? <a href="https://github.com/Elphax89/sublense/releases/download/desktop-latest/SubLens-Portable-Windows.exe">Portable version</a>.
+    macOS: drag SubLens to Applications, right-click → <i>Open</i> the first time, then allow <b>Screen Recording</b>. Show or hide the lens with Ctrl+Shift+L (⌘⇧L). The translation model (about 900 MB) downloads once.</p>
+  </section>
 
   <section>
     <h2>Install</h2>
