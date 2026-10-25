@@ -27,13 +27,32 @@
     "appId": "app.sublens.desktop",
     "productName": "SubLens",
     "copyright": "© Elphax89 – MIT license",
-    "directories": { "output": "dist", "buildResources": "build" },
-    "files": ["src/**/*", "assets/**/*", "package.json", "!**/*.map"],
-    "asarUnpack": ["**/*.node", "**/onnxruntime-node/**", "**/tesseract.js/**", "**/tesseract.js-core/**"],
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "src/**/*",
+      "assets/**/*",
+      "package.json",
+      "!**/*.map",
+      "!node_modules/onnxruntime-web/**"
+    ],
+    "asarUnpack": [
+      "**/*.node",
+      "**/onnxruntime-node/**",
+      "**/tesseract.js/**",
+      "**/tesseract.js-core/**"
+    ],
     "npmRebuild": false,
     "win": {
       "artifactName": "SubLens-${version}-Windows-${arch}-${target}.${ext}",
-      "icon": "build/icon.png"
+      "icon": "build/icon.png",
+      "files": [
+        "!node_modules/onnxruntime-node/bin/napi-v6/darwin/**",
+        "!node_modules/onnxruntime-node/bin/napi-v6/linux/**",
+        "!node_modules/onnxruntime-node/bin/napi-v6/win32/arm64/**"
+      ]
     },
     "nsis": {
       "oneClick": false,
@@ -41,7 +60,9 @@
       "allowToChangeInstallationDirectory": true,
       "artifactName": "SubLens-Setup-Windows.${ext}"
     },
-    "portable": { "artifactName": "SubLens-Portable-Windows.${ext}" },
+    "portable": {
+      "artifactName": "SubLens-Portable-Windows.${ext}"
+    },
     "mac": {
       "category": "public.app-category.productivity",
       "icon": "build/icon.png",
@@ -50,8 +71,25 @@
       "artifactName": "SubLens-macOS-${arch}.${ext}",
       "extendInfo": {
         "NSScreenCaptureUsageDescription": "SubLens reads the text under the lens to translate it. Nothing is saved or uploaded."
-      }
+      },
+      "files": [
+        "!node_modules/onnxruntime-node/bin/napi-v6/win32/**",
+        "!node_modules/onnxruntime-node/bin/napi-v6/linux/**"
+      ]
     },
-    "dmg": { "title": "SubLens" }
+    "dmg": {
+      "title": "SubLens"
+    },
+    "linux": {
+      "target": "dir",
+      "files": [
+        "!node_modules/onnxruntime-node/bin/napi-v6/darwin/**",
+        "!node_modules/onnxruntime-node/bin/napi-v6/win32/**"
+      ]
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Elphax89/sublense.git"
   }
 }

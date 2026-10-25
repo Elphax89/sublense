@@ -61,6 +61,18 @@ jobs:
         run: npm version "0.1.${{ github.run_number }}" --no-git-tag-version --allow-same-version
       - name: Package
         run: npx electron-builder ${{ matrix.target }} --publish never
+      - name: Self test of the packaged app (engine loads, text recognition works)
+        env:
+          SUBLENS_SELFTEST_OUT: ${{ runner.temp }}/selftest.txt
+        run: |
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            powershell -Command "Start-Process -FilePath 'dist/win-unpacked/SubLens.exe' -ArgumentList '--selftest' -Wait"
+          else
+            "dist/mac-arm64/SubLens.app/Contents/MacOS/SubLens" --selftest || true
+          fi
+          cat "$SUBLENS_SELFTEST_OUT"
+          while IFS= read -r line; do echo "::notice::$line"; done < "$SUBLENS_SELFTEST_OUT"
+          grep -q '^OK$' "$SUBLENS_SELFTEST_OUT"
       - uses: actions/upload-artifact@v4
         with:
           name: desktop-${{ matrix.os }}

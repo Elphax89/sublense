@@ -446,7 +446,49 @@ async function checkForUpdate() {
 
 // ---------------------------------------------------------------- App lifecycle
 
-if (!app.requestSingleInstanceLock()) {
+/**
+ * `SubLens --selftest`: checks that the packaged app can load its engine (used by CI on Windows and macOS):
+ * Transformers.js with the native ONNX runtime, and Tesseract reading a small picture.
+ */
+async function selfTest() {
+  const os = require('os');
+  // GUI apps on Windows have no console: the result also goes to a file the CI can read.
+  const out = process.env.SUBLENS_SELFTEST_OUT || path.join(os.tmpdir(), 'sublens-selftest.txt');
+  try {
+    fs.writeFileSync(out, '');
+  } catch {
+    // ignore
+  }
+  const log = (m) => {
+    process.stdout.write(`[selftest] ${m}\n`);
+    try {
+      fs.appendFileSync(out, `${m}\n`);
+    } catch {
+      // ignore
+    }
+  };
+  try {
+    let t = Date.now();
+    const tf = await import('@huggingface/transformers');
+    log(`transformers ${tf.env.version} + onnxruntime loaded in ${Date.now() - t} ms`);
+    core.init({ dataDir: path.join(os.tmpdir(), 'sublens-selftest'), onProgress: () => {} });
+    t = Date.now();
+    const blocks = await core.ocr(fs.readFileSync(path.join(__dirname, '..', 'assets', 'selftest.png')), 'eng');
+    const text = blocks.map((b) => b.text).join(' ');
+    log(`OCR in ${Date.now() - t} ms: ${text}`);
+    await core.shutdown();
+    if (!/self\s*test/i.test(text)) throw new Error('OCR result unexpected');
+    log('OK');
+    app.exit(0);
+  } catch (e) {
+    log(`FAILED: ${e && e.stack}`);
+    app.exit(1);
+  }
+}
+
+if (process.argv.includes('--selftest')) {
+  app.whenReady().then(selfTest);
+} else if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
   app.on('second-instance', () => showPanel());
