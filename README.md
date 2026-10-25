@@ -1,87 +1,93 @@
 # SubLens
 
-**Live-Übersetzung als Overlay für Android – für YouTube-Untertitel, Chats und jeden Text am Bildschirm.**
-Komplett offline, kostenlos, ohne Konto und ohne Werbung.
+**Live screen translation for Android.** A transparent lens you drag over YouTube subtitles, chats or any other text on screen. The translation appears right on top of the original, in its colours and at roughly its size. Reply in the other person's language with one tap.
 
-<p align="center"><img src="docs/preview.png" width="360" alt="Illustration: Rahmen über Untertiteln, darunter Übersetzung und Antwortzeile"></p>
+Free, open source, fully offline. No account, no ads, nothing leaves your phone.
 
-## ⬇️ Herunterladen
+![SubLens on a phone: subtitles translated in place, a Japanese chat translated to English, a reply copied in Japanese, the Preview button showing the original](docs/screenshots.jpg)
 
-### 👉 [**SubLens.apk herunterladen**](https://github.com/Elphax89/sublense/releases/latest/download/SubLens.apk)
+🎬 [Watch the 40-second demo](docs/demo.mp4)
 
-Oder über die Download-Seite mit Anleitung: **https://elphax89.github.io/sublense/**
+## ⬇️ Download
 
-1. Link am Android-Handy öffnen und die Datei öffnen.
-2. Android fragt beim ersten Mal, ob der Browser Apps installieren darf → **Zulassen**.
-3. **Installieren** tippen. Warnt Play Protect, auf *Trotzdem installieren* tippen (die App kommt nicht aus dem Play Store).
-4. SubLens öffnen, „Über anderen Apps anzeigen“ erlauben, **Übersetzer starten**.
+### 👉 [**Download SubLens.apk**](https://github.com/Elphax89/sublense/releases/latest/download/SubLens.apk)
 
-> **Ist der Schalter grau („Gesteuert durch beschränkte Einstellung“)?** Das ist Androids Schutz für Apps außerhalb des Play Stores. Einmal freischalten: *Einstellungen → Apps → SubLens → ⋮ (oben rechts) → **Eingeschränkte Einstellungen zulassen*** (Handy-Code bestätigen), danach den Schalter „Über anderen Apps anzeigen“ einschalten. [Googles Anleitung](https://support.google.com/android/answer/12623953)
+Download page with instructions: **https://elphax89.github.io/sublense/**
 
-**Updates:** Ab Version 0.2.9 meldet SubLens neue Versionen selbst – oben in der App erscheint „Update verfügbar“, ein Tipp auf *Jetzt aktualisieren* lädt und installiert sie (beim ersten Mal einmal „Apps installieren“ für SubLens erlauben). Unten in der App kannst du mit *Nach Updates suchen* auch selbst prüfen. Einstellungen bleiben erhalten.
+1. Open the link on your Android phone and open the downloaded file.
+2. The first time, Android asks whether your browser may install apps → **Allow**.
+3. Tap **Install**. If Play Protect warns you, tap *Install anyway* (the app isn't from the Play Store).
+4. Open SubLens, allow **Display over other apps**, then tap **Start translator**.
+
+> **Switch greyed out ("Controlled by restricted setting")?** Android protects apps from outside the Play Store this way. Unlock it once: *Settings → Apps → SubLens → ⋮ (top right) → Allow restricted settings*, then turn on *Display over other apps*. [Google's guide](https://support.google.com/android/answer/12623953)
+
+**Updates:** SubLens checks for new versions by itself. The button at the bottom of the app turns into *New version available – install now?*. One tap downloads and installs it, and your settings are kept. The first time, Android asks you to let SubLens install apps.
+
+## Features
+
+- 🔍 **Translation right in the lens.** Every text block is replaced where it is, in the colours of the original. Longer translations grow sideways instead of shrinking.
+- 💬 **Subtitles, chats, any text.** Works on top of YouTube, Telegram, WeChat, websites, games and other apps.
+- ✍️ **Reply line.** Type in your own language and tap copy. The translation into the chat's language is on your clipboard, ready to paste.
+- 👁️ **Preview.** Shows the original text until you tap it again. Tapping a single translation shows its original for 3 seconds.
+- 🔲 **A lens you can move and resize.** Always full screen width, in portrait and landscape. Drag the top or bottom handle to change the height (at least 1/5 of the screen), drag the ↕ button to move it. ⚙ and ✕ sit on the bottom right corner.
+- 🌍 **50+ languages** with automatic detection. Chinese is shown in traditional characters.
+- 📴 **Offline.** Text recognition, language detection and translation run on the phone (Google ML Kit). Each language pack downloads once (about 30 MB), and you can download any pack by hand, for example before a trip.
+- 🔒 **Private.** No server, no account. Screen frames only live briefly in memory and are never saved.
+- 🌐 **The app speaks your phone's language:** English, German, Spanish, French, Italian, Portuguese, Polish, Turkish, Russian, Chinese, Japanese and Korean.
+
+## How to use it
+
+**Subtitles:** open YouTube, turn on captions (CC) and move the lens over them. The translation replaces the subtitle.
+
+**Chats:** put the lens over the messages. To answer, tap the reply line under the lens, write in your language, tap the copy button (or *Done* on the keyboard) and paste into the chat.
+
+**Stop:** ✕ on the lens or *Stop* in the notification.
+
+Android asks for screen sharing every time SubLens starts. Choose **Entire screen**, not a single app, or the lens won't line up with the text.
+
+## Settings
+
+| Area | Options |
+|---|---|
+| Language | From (automatic or fixed), To, script for automatic detection |
+| Display | Translation in the lens or in a bar next to it, bar position, text size, show original |
+| Reply line | On/off, reply language (automatic = detected language) |
+| Refresh | Fast 0.3 s · Normal 0.5 s · Battery saver 1 s |
+| Language packs | Wi-Fi only, download any language, delete packs |
+
+## Good to know
+
+- **Android 8 or newer.** iOS doesn't allow overlays on top of other apps.
+- **Brief flicker.** When something changes under the lens, SubLens hides its translations for a split second to read the screen again. In a still chat nothing flickers; over a playing video it happens about every 0.6 s. If that bothers you, show the translation in the bar instead.
+- **Protected apps.** Netflix, Disney+ and banking apps block screen sharing, so SubLens sees nothing there.
+- **Scripts.** Text recognition reads Latin, Chinese, Japanese, Korean and Devanagari script. Cyrillic, Arabic, Greek, Hebrew and Thai work as target languages only.
+- **Traditional Chinese** output needs Android 10 or newer; older phones get simplified characters.
+- Text recognition runs through Google Play services and downloads its model once on first start.
 
 ---
 
-## Funktionen
+## For developers
 
-- 🔲 **Rahmen** – durchsichtig, immer bildschirmbreit, im Hoch- und Querformat. An der Leiste verschieben, am Griff die Höhe ändern (mindestens 1/5 des Bildschirms). Berührungen gehen durch zur App darunter.
-- 🔍 **Übersetzung direkt in der Linse** – jeder Textblock wird an seiner Stelle ersetzt, in ähnlicher Größe und Farbe wie das Original. Antippen zeigt 3 Sekunden das Original. Ändert sich unter der Linse etwas, blendet sie sich für einen Augenblick aus, um neu zu lesen.
-- 💬 **Oder in der Leiste** – wahlweise unter oder über dem Rahmen, ganz ohne Blinken. Das Kürzel zeigt die Sprachen, z. B. `EN → DE`.
-- ✍️ **Antwortzeile** (optional) – in deiner Sprache schreiben, Kopieren tippen. Die Übersetzung in die Sprache des Chats liegt dann in der Zwischenablage, fertig zum Einfügen in Telegram, WeChat & Co.
-- 🌍 **Über 50 Sprachen** mit automatischer Erkennung.
-- ⚙️ **Schnell-Einstellungen** direkt im Overlay: Quell- und Zielsprache, Antwortsprache, Leiste oben/unten, Antwortzeile an/aus.
-- 📴 **Offline** – Texterkennung, Spracherkennung und Übersetzung laufen am Handy (Google ML Kit). Jedes Sprachpaket wird nur einmal geladen (ca. 30 MB).
-- 🔒 **Privat** – kein Server, kein Konto. Die Bilder der Bildschirmfreigabe liegen nur kurz im Arbeitsspeicher und werden nie gespeichert.
-- 💾 Position und Größe des Rahmens werden getrennt für Hoch- und Querformat gemerkt.
+Plain Kotlin, no extra frameworks. Every push to `main` runs [`build.yml`](.github/workflows/build.yml): it builds the APK, publishes it as the latest release (`SubLens.apk`) and deploys the download page from `docs/` to GitHub Pages (*Settings → Pages → Source: GitHub Actions*).
 
-## So benutzt du es
+Build locally (JDK 17 + Android SDK): `./gradlew assembleRelease`, or open the folder in Android Studio.
 
-**Untertitel:** YouTube öffnen, Untertitel (CC) einschalten, den Rahmen über die Untertitel ziehen. Die Übersetzung erscheint in der Leiste.
+The APK is signed with the key in `signing/` so updates install over older versions. Use your own private key if you publish to the Play Store.
 
-**Chats:** Rahmen über die Nachrichten legen. Zum Antworten unten in die Antwortzeile tippen, in deiner Sprache schreiben, auf das Kopier-Symbol (oder *Fertig* auf der Tastatur) tippen, dann im Chat einfügen.
-
-**Beenden:** ✕ in der Leiste oder „Beenden“ in der Benachrichtigung.
-
-## Einstellungen in der App
-
-| Bereich | Optionen |
+| File | Purpose |
 |---|---|
-| Sprache | Von (automatisch oder fest), Nach, Schrift für die automatische Erkennung |
-| Anzeige | Übersetzung in der Linse oder in der Leiste, Leiste über/unter dem Rahmen, Textgröße, Original zusätzlich anzeigen |
-| Antwortzeile | an/aus, Antwortsprache (automatisch = erkannte Sprache) |
-| Aktualisierung | Schnell 0,3 s · Normal 0,5 s · Akku sparen 1 s |
-| Sprachpakete | Nur über WLAN laden, geladene Pakete anzeigen und löschen |
+| `MainActivity.kt` | Home screen, permissions, settings, language packs, updates |
+| `OverlayService.kt` | Foreground service, screen sharing, capture loop (hides the lens only when something changed) |
+| `OverlayController.kt` | Overlay windows: lens, handles, ⚙/✕, quick settings |
+| `LensLayer.kt` | Draws translations over the original text (one small window per block) |
+| `TextPipeline.kt` | Text recognition → language detection → translation, with colours and positions |
+| `ScreenCapturer.kt` | Reads the screen, crops the lens area, change detection |
+| `ComposerWindow.kt` | Reply line: input, keyboard, preview |
+| `ReplyTranslator.kt` | Translates your reply for the clipboard |
+| `ChineseScript.kt` | Simplified ↔ traditional Chinese |
+| `Updater.kt` | Checks GitHub releases and installs updates |
+| `Prefs.kt`, `Languages.kt` | Settings, language lists |
 
-## Gut zu wissen
-
-- Android verlangt bei jedem Start erneut die Bildschirmfreigabe – dort **Gesamter Bildschirm** wählen.
-- Nur für Android 8 oder neuer. iOS erlaubt keine Overlays über anderen Apps.
-- Netflix, Disney+ und Banking-Apps sperren die Bildschirmfreigabe, dort wird nichts erkannt.
-- Die Texterkennung liest lateinische, chinesische, japanische, koreanische und Devanagari-Schrift. Kyrillisch, Arabisch, Griechisch, Hebräisch und Thai sind nur als Zielsprache möglich.
-- Die Texterkennung läuft über die Google Play-Dienste und lädt ihr Modell beim ersten Start einmalig nach.
-
----
-
-## Für Entwickler
-
-Kotlin, ohne weitere Frameworks. Bei jedem Push auf `main` baut [`build.yml`](.github/workflows/build.yml) die APK, veröffentlicht sie als neuestes Release (`SubLens.apk`) und aktualisiert die Download-Seite aus `docs/` auf GitHub Pages (*Settings → Pages → Source: GitHub Actions*).
-
-Lokal bauen (JDK 17 + Android SDK): `./gradlew assembleRelease` – oder den Ordner in Android Studio öffnen.
-
-Die APK ist mit dem Schlüssel in `signing/` signiert, damit Updates über die alte Version installieren. Für den Play Store einen eigenen, geheimen Schlüssel verwenden.
-
-| Datei | Aufgabe |
-|---|---|
-| `MainActivity.kt` | Startseite, Berechtigungen, Einstellungen, Sprachpakete |
-| `OverlayService.kt` | Vordergrund-Dienst, Bildschirmfreigabe, Takt der Erkennung |
-| `OverlayController.kt` | Overlay-Fenster: Rahmen, Leiste, Griff, Schnell-Einstellungen |
-| `ComposerWindow.kt` | Antwortzeile: Eingabe, Tastatur, Vorschau |
-| `FrameView.kt` | Zeichnet den Rahmen |
-| `ScreenCapturer.kt` | Liest das Bild und schneidet den Rahmen-Bereich aus |
-| `TextPipeline.kt` | Texterkennung → Spracherkennung → Übersetzung, mit Cache |
-| `ReplyTranslator.kt` | Übersetzt die eigene Antwort für die Zwischenablage |
-| `Prefs.kt`, `Languages.kt` | Einstellungen, Sprachlisten |
-
-## Lizenz
+## License
 
 [MIT](LICENSE) © Elphax89

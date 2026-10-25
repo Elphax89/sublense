@@ -426,7 +426,7 @@ class OverlayController(
         updateChip()
         if (crop != lastCrop) return // inzwischen verschoben – passt nicht mehr
         if (panelView != null) return // Einstellungen offen – nichts darüber legen
-        lens.show(items, crop.left - offsetX, crop.top - offsetY, frameTop + frameH - cropBottomInset())
+        lens.show(items, crop.left - offsetX, crop.top - offsetY, frameTop + frameH - cropBottomInset(), crop.width())
         hasShownText = true
         clearStatus()
     }

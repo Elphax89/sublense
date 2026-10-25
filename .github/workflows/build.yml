@@ -1,4 +1,4 @@
-name: APK bauen und veröffentlichen
+name: Build and release APK
 
 on:
   push:
@@ -27,19 +27,19 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      - name: APK bauen
+      - name: Build APK
         run: |
           chmod +x gradlew
           if ! ./gradlew assembleRelease --console=plain > build.log 2>&1; then
             cat build.log
-            # Fehler als Annotation, damit sie ohne Log-Download sichtbar sind
+            # Errors as annotations so they show up without downloading the log
             grep -E "^e: |error:|What went wrong|Could not|FAILED|Exception" build.log | head -25 | while IFS= read -r line; do echo "::error::$line"; done
             exit 1
           fi
           tail -5 build.log
           cp app/build/outputs/apk/release/app-release.apk SubLens.apk
 
-      - name: Als neueste Version veröffentlichen
+      - name: Publish as latest release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: build-${{ github.run_number }}
@@ -47,17 +47,19 @@ jobs:
           make_latest: true
           files: SubLens.apk
           body: |
-            **Installieren:** Am Android-Handy unten auf **SubLens.apk** tippen → herunterladen → öffnen → *Installieren*.
-            Beim ersten Mal fragt Android, ob der Browser Apps installieren darf → erlauben.
+            **Install:** on your Android phone, tap **SubLens.apk** below → download → open → *Install*.
+            The first time, Android asks whether your browser may install apps → allow it.
 
-            Ein Update installiert einfach über die vorhandene App, Einstellungen bleiben erhalten.
+            Already have SubLens? It offers this update itself (button at the bottom of the app). Settings are kept.
+
+            Download page: https://elphax89.github.io/sublense/
 
       - uses: actions/upload-artifact@v4
         with:
           name: SubLens-APK
           path: SubLens.apk
 
-  # Download-Seite (GitHub Pages). Läuft unabhängig: fehlt die Pages-Einstellung, ist die APK trotzdem veröffentlicht.
+  # Download page (GitHub Pages). Independent: if Pages is not enabled, the APK is still published.
   pages:
     needs: apk
     runs-on: ubuntu-latest

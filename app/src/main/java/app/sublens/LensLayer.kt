@@ -65,15 +65,23 @@ class LensLayer(
      * Zeigt [items] an. [originX]/[originY] ist die Fensterposition der linken oberen Ecke
      * des Ausschnitts, [maxBottom] die Unterkante der Linse in Fensterkoordinaten.
      */
-    fun show(items: List<LensItem>, originX: Int, originY: Int, maxBottom: Int) {
+    fun show(items: List<LensItem>, originX: Int, originY: Int, maxBottom: Int, cropWidth: Int) {
         val visible = items.filter { it.changed }
         val rects = ArrayList<Rect>(visible.size)
         for ((i, item) in visible.withIndex()) {
             val box = if (i < boxes.size) boxes[i] else BoxView(ctx).also { boxes += it }
             val pad = (3f * density).roundToInt()
-            val left = originX + item.rect.left - pad
+            var left = originX + item.rect.left - pad
             val top = originY + item.rect.top - pad
-            val width = item.rect.width() + 2 * pad
+            var width = item.rect.width() + 2 * pad
+            // Längere Übersetzung (z. B. Untertitel): erst zur Seite wachsen, statt die Schrift zu verkleinern.
+            val wanted = box.naturalWidth(item)
+            if (wanted > width) {
+                val newWidth = min(wanted, cropWidth)
+                val center = left + width / 2
+                left = (center - newWidth / 2).coerceIn(originX, originX + cropWidth - newWidth)
+                width = newWidth
+            }
             val minHeight = item.rect.height() + 2 * pad
             val height = box.bind(item, width, minHeight, max(minHeight, maxBottom - top))
             box.params.x = left
@@ -186,14 +194,27 @@ class LensLayer(
             setOnClickListener { peekOriginal() }
         }
 
+        private fun baseSize(item: LensItem): Float {
+            val minPx = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, MIN_TEXT_SP, resources.displayMetrics)
+            return max(minPx, item.lineHeightPx / 1.2f)
+        }
+
+        /** Breite, die die Übersetzung in Originalgröße bräuchte (so viele Zeilen wie das Original). */
+        fun naturalWidth(item: LensItem): Int {
+            textPaint.textSize = baseSize(item)
+            val lines = max(1, (item.rect.height() + item.lineHeightPx / 2) / max(1, item.lineHeightPx))
+            val oneLine = textPaint.measureText(item.translated)
+            return (oneLine / lines * 1.08f + 2 * padX + 2).roundToInt()
+        }
+
         /** Bereitet den Text vor und gibt die nötige Fensterhöhe zurück. */
         fun bind(item: LensItem, width: Int, minHeight: Int, maxHeight: Int): Int {
             bgPaint.color = item.background
             textPaint.color = item.foreground
             val avail = max(1, (width - 2 * padX).roundToInt())
             val minPx = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, MIN_TEXT_SP, resources.displayMetrics)
-            // Schriftgröße so wie im Original (Zeilenhöhe ≈ 1,25 × Schriftgröße) …
-            var size = max(minPx, item.lineHeightPx / 1.2f)
+            // Schriftgröße so wie im Original (Zeilenhöhe ≈ 1,2 × Schriftgröße) …
+            var size = baseSize(item)
             var l = makeLayout(item.translated, size, avail)
             // … und verkleinern, bis der übersetzte Text in die Fläche des Originals passt.
             while (l.height > minHeight - 2 && size > minPx) {
