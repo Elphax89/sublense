@@ -21,23 +21,25 @@ android {
     }
 
     signingConfigs {
-        // Fester Schlüssel im Repo, damit jede neue APK das vorhandene SubLens aktualisiert.
-        // Für den Play Store einen eigenen, geheimen Schlüssel verwenden.
-        create("oss") {
-            storeFile = rootProject.file("signing/sublens.jks")
-            storePassword = "sublens-oss"
-            keyAlias = "sublens"
-            keyPassword = "sublens-oss"
+        // The release key is never stored in the repo. CI decodes it from GitHub Secrets and
+        // passes its path and password via environment variables (see .github/workflows/build.yml).
+        val keystorePath = System.getenv("SUBLENS_KEYSTORE")
+        val keystorePassword = System.getenv("SUBLENS_PASSWORD")
+        if (!keystorePath.isNullOrBlank() && !keystorePassword.isNullOrBlank()) {
+            create("release") {
+                storeFile = file(keystorePath)
+                storePassword = keystorePassword
+                keyAlias = "sublens"
+                keyPassword = keystorePassword
+            }
         }
     }
 
     buildTypes {
-        debug {
-            signingConfig = signingConfigs.getByName("oss")
-        }
         release {
             isMinifyEnabled = false
-            signingConfig = signingConfigs.getByName("oss")
+            // Without a key (local builds) the release APK stays unsigned; debug builds use Android's debug key.
+            signingConfigs.findByName("release")?.let { signingConfig = it }
         }
     }
 

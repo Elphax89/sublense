@@ -72,7 +72,7 @@ Plain Kotlin, no extra frameworks. Every push to `main` runs [`build.yml`](.gith
 
 Build locally (JDK 17 + Android SDK): `./gradlew assembleRelease`, or open the folder in Android Studio.
 
-The APK is signed with the key in `signing/` so updates install over older versions. Use your own private key if you publish to the Play Store.
+Releases are signed with a private key that lives only in the repository's GitHub Secrets (`SIGNING_KEYSTORE_BASE64`, `SIGNING_PASSWORD`), never in the code. If you fork this, create your own key with `keytool -genkeypair -keystore release.jks -alias sublens -keyalg RSA -keysize 4096 -validity 36500`, use the same password for store and key, and add both secrets (the keystore as `base64 -w0 release.jks`). Without them the workflow stops with a clear message; local `./gradlew assembleDebug` works with Android's debug key.
 
 | File | Purpose |
 |---|---|

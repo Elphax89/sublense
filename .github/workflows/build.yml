@@ -27,6 +27,20 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
+      - name: Prepare signing key
+        env:
+          KEYSTORE_B64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_B64" ] || [ -z "$KEYSTORE_PASSWORD" ]; then
+            echo "::error::Signing key missing. Add the repository secrets SIGNING_KEYSTORE_BASE64 and SIGNING_PASSWORD (Settings > Secrets and variables > Actions), then re-run this workflow."
+            exit 1
+          fi
+          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/sublens-release.jks"
+          echo "SUBLENS_KEYSTORE=$RUNNER_TEMP/sublens-release.jks" >> "$GITHUB_ENV"
+          echo "::add-mask::$KEYSTORE_PASSWORD"
+          echo "SUBLENS_PASSWORD=$KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
+
       - name: Build APK
         run: |
           chmod +x gradlew
