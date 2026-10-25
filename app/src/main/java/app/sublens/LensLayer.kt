@@ -42,6 +42,11 @@ class LensLayer(
     private var captureHidden = false
     private var peekHidden = false
 
+    /** Original wird gerade gezeigt (true) oder wieder die Übersetzung (false). */
+    var onPeekChanged: ((Boolean) -> Unit)? = null
+
+    val peeking: Boolean get() = peekHidden
+
     /** Wird nach jeder sichtbaren Änderung der Blöcke aufgerufen. */
     var onChanged: (() -> Unit)? = null
 
@@ -54,11 +59,7 @@ class LensLayer(
     /** true, solange Blöcke wirklich über dem Original liegen (nicht ausgeblendet). */
     val showing: Boolean get() = used > 0 && !captureHidden && !peekHidden
 
-    private val endPeek = Runnable {
-        peekHidden = false
-        applyVisibility()
-        onChanged?.invoke()
-    }
+    private val endPeek = Runnable { setPeek(false) }
 
     /**
      * Zeigt [items] an. [originX]/[originY] ist die Fensterposition der linken oberen Ecke
@@ -117,13 +118,20 @@ class LensLayer(
         applyVisibility()
     }
 
-    /** Original für ein paar Sekunden zeigen. */
+    /** Original für ein paar Sekunden zeigen (Antippen eines Blocks). */
     fun peekOriginal() {
-        peekHidden = true
-        applyVisibility()
-        main.removeCallbacks(endPeek)
+        setPeek(true)
         main.postDelayed(endPeek, PEEK_MS)
+    }
+
+    /** Original zeigen, bis es wieder ausgeschaltet wird (Vorschau-Knopf). */
+    fun setPeek(on: Boolean) {
+        main.removeCallbacks(endPeek)
+        if (peekHidden == on) return
+        peekHidden = on
+        applyVisibility()
         onChanged?.invoke()
+        onPeekChanged?.invoke(on)
     }
 
     fun destroy() {

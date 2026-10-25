@@ -93,4 +93,6 @@
     <string name="update_check_failed">Impossibile cercare aggiornamenti.</string>
     <string name="update_checking">Ricerca aggiornamenti …</string>
     <string name="version_line">Versione %1$s · Cerca aggiornamenti</string>
+    <string name="lens_peek">Originale</string>
+    <string name="cd_move">Sposta la lente su o giù</string>
 </resources>

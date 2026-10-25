@@ -95,4 +95,6 @@
     <string name="update_check_failed">Could not check for updates.</string>
     <string name="update_checking">Checking for updates …</string>
     <string name="version_line">Version %1$s · Check for updates</string>
+    <string name="lens_peek">Preview</string>
+    <string name="cd_move">Move lens up or down</string>
 </resources>

@@ -93,4 +93,6 @@
     <string name="update_check_failed">Не удалось проверить обновления.</string>
     <string name="update_checking">Проверка обновлений …</string>
     <string name="version_line">Версия %1$s · Проверить обновления</string>
+    <string name="lens_peek">Оригинал</string>
+    <string name="cd_move">Переместить линзу вверх или вниз</string>
 </resources>

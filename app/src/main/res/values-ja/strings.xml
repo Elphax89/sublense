@@ -93,4 +93,6 @@
     <string name="update_check_failed">アップデートを確認できませんでした。</string>
     <string name="update_checking">アップデートを確認中…</string>
     <string name="version_line">バージョン %1$s · アップデートを確認</string>
+    <string name="lens_peek">原文</string>
+    <string name="cd_move">レンズを上下に移動</string>
 </resources>

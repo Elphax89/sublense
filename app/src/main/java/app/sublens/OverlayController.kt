@@ -18,6 +18,7 @@ import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
+import android.widget.Toast
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
@@ -59,17 +60,22 @@ class OverlayController(
 
     private val frameView = FrameView(ctx)
     private val barView: View = inflater.inflate(R.layout.overlay_bar, null)
-    private val handleView: View = inflater.inflate(R.layout.overlay_handle, null)
+    private val topHandle: View = inflater.inflate(R.layout.overlay_handle, null)
+    private val bottomHandle: View = inflater.inflate(R.layout.overlay_handle, null)
+    private val moveView: View = inflater.inflate(R.layout.overlay_move, null)
+    private val controlsView: View = inflater.inflate(R.layout.overlay_controls, null)
     private var panelView: View? = null
-    private val composer = ComposerWindow(ctx, wm, object : ComposerWindow.Listener {
+    private val composer: ComposerWindow = ComposerWindow(ctx, wm, object : ComposerWindow.Listener {
         override fun onPreviewRequested(text: String) = callbacks.onReplyPreview(text)
         override fun onCopyRequested(text: String) = callbacks.onReplyCopy(text)
         override fun onReplyLanguageTapped() = openPanel(ListMode.REPLY)
+        override fun onPeekTapped() = lens.setPeek(!lens.peeking)
         override fun onComposerHeightChanged() = layoutAll()
     })
 
-    private val lens = LensLayer(ctx, wm).also { layer ->
+    private val lens: LensLayer = LensLayer(ctx, wm).also { layer ->
         layer.onChanged = { callbacks.onLensChanged(if (layer.showing) layer.drawnRects else emptyList()) }
+        layer.onPeekChanged = { on -> composer.setPeekActive(on) }
     }
     private var lastCrop: Rect? = null
 
@@ -85,7 +91,13 @@ class OverlayController(
         alpha = 0.78f
     }
     private val barParams = overlayParams(touchable = true)
-    private val handleParams = overlayParams(touchable = true)
+    private val topHandleParams = overlayParams(touchable = true)
+    private val bottomHandleParams = overlayParams(touchable = true)
+    private val moveParams = overlayParams(touchable = true)
+    private val controlsParams = overlayParams(touchable = true).apply {
+        // von rechts gemessen
+        gravity = Gravity.TOP or Gravity.END
+    }
 
     private var screenW = 0
     private var screenH = 0
@@ -93,19 +105,29 @@ class OverlayController(
     private var frameTop = 0
     private var frameH = 0
     private var attached = false
+    private var barAttached = false
     private var hasShownText = false
     private var detectedLang: String? = null
     private var panelClosedAt = 0L
+    private var statusShowing = false
+    private var lastToast = ""
 
     /** Abweichung zwischen gewünschter und tatsächlicher Fensterposition (sollte 0 sein). */
     private var offsetX = 0
     private var offsetY = 0
 
+    private enum class Drag { MOVE, TOP_EDGE, BOTTOM_EDGE }
+
     init {
-        barView.findViewById<ImageButton>(R.id.btn_close).setOnClickListener { callbacks.onCloseRequested() }
-        barView.findViewById<ImageButton>(R.id.btn_settings).setOnClickListener { togglePanel() }
-        setupBarDrag()
-        setupResizeHandle()
+        controlsView.findViewById<ImageButton>(R.id.btn_close).setOnClickListener { callbacks.onCloseRequested() }
+        controlsView.findViewById<ImageButton>(R.id.btn_settings).setOnClickListener { togglePanel() }
+        // Die Leiste (nur im Leisten-Modus) zeigt nur noch Text – Bedienung sitzt am Rahmen.
+        barView.findViewById<View>(R.id.btn_close).visibility = View.GONE
+        barView.findViewById<View>(R.id.btn_settings).visibility = View.GONE
+        attachDrag(barView, Drag.MOVE)
+        attachDrag(moveView, Drag.MOVE)
+        attachDrag(topHandle, Drag.TOP_EDGE)
+        attachDrag(bottomHandle, Drag.BOTTOM_EDGE)
         frameView.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ -> measureOffset() }
         barView.addOnLayoutChangeListener { _, _, top, _, bottom, _, oldTop, _, oldBottom ->
             if (bottom - top != oldBottom - oldTop) layoutAll()
@@ -119,10 +141,14 @@ class OverlayController(
         applyStyle()
         layoutAll()
         wm.addView(frameView, frameParams)
-        wm.addView(barView, barParams)
-        wm.addView(handleView, handleParams)
         attached = true
+        updateBarAttached()
         if (prefs.composerEnabled) composer.attach()
+        // Bedienelemente zuletzt, damit sie über Rahmen und Leiste liegen
+        wm.addView(topHandle, topHandleParams)
+        wm.addView(bottomHandle, bottomHandleParams)
+        wm.addView(moveView, moveParams)
+        wm.addView(controlsView, controlsParams)
         layoutAll()
     }
 
@@ -130,13 +156,32 @@ class OverlayController(
         closePanel()
         lens.destroy()
         composer.detach()
-        for (v in listOf(frameView, barView, handleView)) {
+        for (v in listOf(frameView, topHandle, bottomHandle, moveView, controlsView)) {
             try {
                 wm.removeView(v)
             } catch (_: Exception) {
             }
         }
+        if (barAttached) {
+            try {
+                wm.removeView(barView)
+            } catch (_: Exception) {
+            }
+            barAttached = false
+        }
         attached = false
+    }
+
+    /** Die Textleiste gibt es nur im Leisten-Modus. */
+    private fun updateBarAttached() {
+        if (!attached) return
+        val want = !prefs.lensMode
+        if (want == barAttached) return
+        try {
+            if (want) wm.addView(barView, barParams) else wm.removeView(barView)
+            barAttached = want
+        } catch (_: Exception) {
+        }
     }
 
     /** Bildschirmgröße hat sich geändert (z. B. gedreht). */
@@ -152,7 +197,10 @@ class OverlayController(
         if (attached) layoutAll()
     }
 
-    fun relayout() = layoutAll()
+    fun relayout() {
+        updateBarAttached()
+        layoutAll()
+    }
 
     private fun overlayParams(touchable: Boolean): WindowManager.LayoutParams {
         var flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
@@ -181,31 +229,30 @@ class OverlayController(
     private fun maxFrameHeight(): Int = max(minFrameHeight(), (screenH * Prefs.MAX_HEIGHT_FRACTION).roundToInt())
 
     /**
-     * Ordnet Rahmen, Leiste, Griff und Antwortzeile an. Reihenfolge von oben nach unten:
-     *  Leiste-Modus, Leiste oben:  [Leiste] [Rahmen] [Griff]  [Antwortzeile]
-     *  Leiste-Modus, Leiste unten: [Griff]  [Rahmen] [Leiste] [Antwortzeile]
-     *  Linsen-Modus, Leiste oben:  [Leiste] [Rahmen + Griff] [Antwortzeile]
-     *  Linsen-Modus, Leiste unten: [Griff]  [Rahmen] [Antwortzeile] [Leiste]
-     * Im Linsen-Modus sitzt die Antwortzeile also immer direkt unter der Linse.
+     * Ordnet alles an. Von oben nach unten:
+     *  [Griff oben]  – auf der Oberkante, ändert die Höhe nach oben
+     *  [Linse]
+     *  [Verschieben ↕ links · Griff unten Mitte · ⚙ ✕ rechts] – auf der Unterkante
+     *  ([Textleiste] – nur im Leisten-Modus, wahlweise oben)
+     *  [Antwortzeile]
      */
     private fun layoutAll() {
         if (screenW <= 0 || screenH <= 0) return
-        val barH = barView.height.takeIf { it > 0 } ?: dp(60f)
         val tabH = dp(HANDLE_H_DP)
         val tabW = dp(HANDLE_W_DP)
-        val above = prefs.barAbove
-        val lensMode = prefs.lensMode
-        val composerH = if (composer.attached) composer.stableHeight.takeIf { it > 0 } ?: dp(92f) else 0
-        // Im Linsen-Modus mit Leiste oben liegt der Griff auf der Unterkante der Linse.
-        val handleInside = lensMode && above
-        val handleOutside = if (handleInside) 0 else tabH
+        val ctlH = dp(CONTROL_DP)
+        val topOut = tabH / 2
+        val bottomOut = ctlH / 2
+        val barShown = barAttached
+        val barH = if (barShown) barView.height.takeIf { it > 0 } ?: dp(60f) else 0
+        val above = barShown && prefs.barAbove
+        val composerH = if (composer.attached) composer.stableHeight.takeIf { it > 0 } ?: dp(80f) else 0
 
         frameH = frameH.coerceIn(minFrameHeight(), maxFrameHeight())
-        val reserveTop = if (above) barH else tabH
-        val reserveBottom = (if (above) handleOutside else barH) + composerH
-        val minTop = reserveTop
-        val maxTop = max(minTop, screenH - frameH - reserveBottom)
-        frameTop = frameTop.coerceIn(minTop, maxTop)
+        val reserveTop = topOut + (if (above) barH else 0)
+        val reserveBottom = bottomOut + (if (barShown && !above) barH else 0) + composerH
+        val maxTop = max(reserveTop, screenH - frameH - reserveBottom)
+        frameTop = frameTop.coerceIn(reserveTop, maxTop)
         val frameBottom = frameTop + frameH
 
         frameParams.x = 0
@@ -213,35 +260,40 @@ class OverlayController(
         frameParams.width = screenW
         frameParams.height = frameH
 
+        topHandleParams.width = tabW
+        topHandleParams.height = tabH
+        topHandleParams.x = (screenW - tabW) / 2
+        topHandleParams.y = frameTop - topOut
+
+        bottomHandleParams.width = tabW
+        bottomHandleParams.height = tabH
+        bottomHandleParams.x = (screenW - tabW) / 2
+        bottomHandleParams.y = frameBottom - tabH / 2
+
+        moveParams.width = ctlH
+        moveParams.height = ctlH
+        moveParams.x = dp(EDGE_DP)
+        moveParams.y = frameBottom - bottomOut
+
+        controlsParams.width = WindowManager.LayoutParams.WRAP_CONTENT
+        controlsParams.height = ctlH
+        controlsParams.x = dp(EDGE_DP)
+        controlsParams.y = frameBottom - bottomOut
+
         barParams.x = 0
         barParams.width = screenW
         barParams.height = WindowManager.LayoutParams.WRAP_CONTENT
-        barParams.y = when {
-            above -> frameTop - barH
-            lensMode -> frameBottom + composerH
-            else -> frameBottom
-        }
-
-        handleParams.width = tabW
-        handleParams.height = tabH
-        handleParams.x = (screenW - tabW) / 2
-        handleParams.y = when {
-            handleInside -> frameBottom - tabH
-            above -> frameBottom
-            else -> frameTop - tabH
-        }
+        barParams.y = if (above) frameTop - topOut - barH else frameBottom + bottomOut
 
         if (attached) {
             update(frameView, frameParams)
-            update(barView, barParams)
-            update(handleView, handleParams)
+            update(topHandle, topHandleParams)
+            update(bottomHandle, bottomHandleParams)
+            update(moveView, moveParams)
+            update(controlsView, controlsParams)
+            if (barAttached) update(barView, barParams)
         }
-        val composerY = when {
-            lensMode -> frameBottom + (if (above) handleOutside else 0)
-            above -> frameBottom + tabH
-            else -> frameBottom + barH
-        }
-        composer.place(composerY, screenW)
+        composer.place(frameBottom + bottomOut + (if (barShown && !above) barH else 0), screenW)
         publishCrop()
     }
 
@@ -266,12 +318,16 @@ class OverlayController(
         }
     }
 
-    /** Bereich, in dem Text gelesen wird: das Rahmen-Innere, ohne den Rahmen selbst. */
+    /** Oberer und unterer Rand, an dem Griffe und Knöpfe liegen – dort wird kein Text gelesen. */
+    private fun cropTopInset(): Int = max(frameView.insetPx, dp(HANDLE_H_DP) / 2 + dp(2f))
+    private fun cropBottomInset(): Int = max(frameView.insetPx, dp(CONTROL_DP) / 2 + dp(2f))
+
+    /** Bereich, in dem Text gelesen wird: das Rahmen-Innere ohne Rahmen, Griffe und Knöpfe. */
     private fun publishCrop() {
         val inset = frameView.insetPx
         val left = offsetX + inset
-        val top = frameTop + offsetY + inset
-        val rect = Rect(left, top, offsetX + screenW - inset, frameTop + offsetY + frameH - inset)
+        val top = frameTop + offsetY + cropTopInset()
+        val rect = Rect(left, top, offsetX + screenW - inset, frameTop + offsetY + frameH - cropBottomInset())
         if (rect.width() <= 0 || rect.height() <= 0) return
         if (rect != lastCrop) {
             // Linse verschoben: alte Übersetzungen liegen nicht mehr über ihrem Text.
@@ -288,25 +344,36 @@ class OverlayController(
 
     // ---------------------------------------------------------------- Bedienung
 
+    /** Verschieben (ganze Linse) oder Ober-/Unterkante ziehen. */
     @SuppressLint("ClickableViewAccessibility")
-    private fun setupBarDrag() {
+    private fun attachDrag(view: View, mode: Drag) {
         val slop = ViewConfiguration.get(ctx).scaledTouchSlop
         var downY = 0f
         var startTop = 0
+        var startH = 0
         var dragging = false
-        barView.setOnTouchListener { _, e ->
+        view.setOnTouchListener { _, e ->
             when (e.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
                     downY = e.rawY
                     startTop = frameTop
+                    startH = frameH
                     dragging = false
                     true
                 }
                 MotionEvent.ACTION_MOVE -> {
-                    val dy = e.rawY - downY
+                    val dy = (e.rawY - downY).roundToInt()
                     if (!dragging && abs(dy) > slop) dragging = true
                     if (dragging) {
-                        frameTop = startTop + dy.roundToInt()
+                        when (mode) {
+                            Drag.MOVE -> frameTop = startTop + dy
+                            Drag.BOTTOM_EDGE -> frameH = (startH + dy).coerceIn(minFrameHeight(), maxFrameHeight())
+                            Drag.TOP_EDGE -> {
+                                val bottom = startTop + startH
+                                frameH = (startH - dy).coerceIn(minFrameHeight(), maxFrameHeight())
+                                frameTop = bottom - frameH
+                            }
+                        }
                         layoutAll()
                     }
                     true
@@ -314,42 +381,6 @@ class OverlayController(
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                     if (dragging) saveFrame()
                     dragging = false
-                    true
-                }
-                else -> false
-            }
-        }
-    }
-
-    @SuppressLint("ClickableViewAccessibility")
-    private fun setupResizeHandle() {
-        var downY = 0f
-        var startTop = 0
-        var startH = 0
-        handleView.setOnTouchListener { _, e ->
-            when (e.actionMasked) {
-                MotionEvent.ACTION_DOWN -> {
-                    downY = e.rawY
-                    startTop = frameTop
-                    startH = frameH
-                    true
-                }
-                MotionEvent.ACTION_MOVE -> {
-                    val dy = (e.rawY - downY).roundToInt()
-                    if (prefs.barAbove) {
-                        // Griff unten: Oberkante bleibt, Unterkante wandert
-                        frameH = (startH + dy).coerceIn(minFrameHeight(), maxFrameHeight())
-                    } else {
-                        // Griff oben: Unterkante bleibt, Oberkante wandert
-                        val bottom = startTop + startH
-                        frameH = (startH - dy).coerceIn(minFrameHeight(), maxFrameHeight())
-                        frameTop = bottom - frameH
-                    }
-                    layoutAll()
-                    true
-                }
-                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                    saveFrame()
                     true
                 }
                 else -> false
@@ -378,6 +409,7 @@ class OverlayController(
 
     fun showTranslation(original: String, translated: String, sourceLang: String?) {
         hasShownText = true
+        clearStatus()
         detectedLang = if (prefs.sourceLang == Languages.AUTO) sourceLang else null
         updateChip()
         tvTranslation.setTextColor(colorMain)
@@ -394,13 +426,16 @@ class OverlayController(
         updateChip()
         if (crop != lastCrop) return // inzwischen verschoben – passt nicht mehr
         if (panelView != null) return // Einstellungen offen – nichts darüber legen
-        lens.show(items, crop.left - offsetX, crop.top - offsetY, frameTop + frameH - frameView.insetPx)
-        if (!hasShownText || tvTranslation.typeface?.isItalic == true) {
-            hasShownText = true
-            tvTranslation.setTextColor(colorDim)
-            tvTranslation.setTypeface(null, Typeface.NORMAL)
-            tvTranslation.setText(R.string.lens_hint)
-        }
+        lens.show(items, crop.left - offsetX, crop.top - offsetY, frameTop + frameH - cropBottomInset())
+        hasShownText = true
+        clearStatus()
+    }
+
+    private fun clearStatus() {
+        if (!statusShowing) return
+        statusShowing = false
+        lastToast = ""
+        composer.clearStatus()
     }
 
     fun clearLens() {
@@ -414,6 +449,17 @@ class OverlayController(
     }
 
     fun showStatus(message: String) {
+        if (prefs.lensMode) {
+            // Keine Textleiste: Meldung in der Antwortzeile, sonst kurz als Hinweis.
+            statusShowing = true
+            if (composer.attached) {
+                composer.showStatus(message)
+            } else if (message != lastToast) {
+                lastToast = message
+                Toast.makeText(ctx, message, Toast.LENGTH_LONG).show()
+            }
+            return
+        }
         tvTranslation.setTextColor(colorDim)
         tvTranslation.setTypeface(null, Typeface.ITALIC)
         tvTranslation.text = message
@@ -625,5 +671,7 @@ class OverlayController(
     companion object {
         private const val HANDLE_W_DP = 64f
         private const val HANDLE_H_DP = 22f
+        private const val CONTROL_DP = 40f
+        private const val EDGE_DP = 12f
     }
 }

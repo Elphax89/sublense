@@ -39,6 +39,7 @@ class ComposerWindow(
         fun onPreviewRequested(text: String)
         fun onCopyRequested(text: String)
         fun onReplyLanguageTapped()
+        fun onPeekTapped()
         fun onComposerHeightChanged()
     }
 
@@ -52,6 +53,7 @@ class ComposerWindow(
     private val preview: TextView = view.findViewById(R.id.composer_preview)
     private val chip: TextView = view.findViewById(R.id.composer_chip)
     private val copyButton: ImageButton = view.findViewById(R.id.composer_copy)
+    private val peekButton: TextView = view.findViewById(R.id.composer_peek)
 
     private val colorMain = ctx.getColor(R.color.text_main)
     private val colorDim = ctx.getColor(R.color.text_dim)
@@ -106,6 +108,7 @@ class ComposerWindow(
         input.maxLines = 3
         setupInput()
         copyButton.setOnClickListener { requestCopy() }
+        peekButton.setOnClickListener { listener.onPeekTapped() }
         chip.setOnClickListener {
             stopEditing()
             listener.onReplyLanguageTapped()
@@ -273,31 +276,53 @@ class ComposerWindow(
         if (currentText().isEmpty()) showPlaceholder() else if (changed) schedulePreview()
     }
 
+    /** Vorschau-Knopf hervorheben, solange das Original gezeigt wird. */
+    fun setPeekActive(active: Boolean) {
+        peekButton.isSelected = active
+        peekButton.setTextColor(if (active) colorAccent else colorMain)
+    }
+
     /** Live-Vorschau; wird ignoriert, wenn inzwischen etwas anderes im Feld steht. */
     fun showPreview(forText: String, translated: String) {
         if (forText != currentText()) return
-        preview.setTextColor(colorMain)
-        preview.text = translated
+        setLine(translated, colorMain)
     }
 
     fun showStatus(message: String) {
-        preview.setTextColor(colorDim)
-        preview.text = message
+        setLine(message, colorDim)
+    }
+
+    /** Statusmeldung, die nach ein paar Sekunden von selbst verschwindet. */
+    fun showTimedStatus(message: String, ms: Long) {
+        setLine(message, colorDim)
+        main.removeCallbacks(resetRunnable)
+        main.postDelayed(resetRunnable, ms)
+    }
+
+    /** Statusmeldung entfernen, sofern gerade nichts getippt wird. */
+    fun clearStatus() {
+        if (currentText().isEmpty()) showPlaceholder()
+    }
+
+    private fun setLine(text: String, color: Int) {
+        preview.setTextColor(color)
+        preview.text = text
+        preview.visibility = View.VISIBLE
     }
 
     fun showCopied() {
         main.removeCallbacks(previewRunnable)
         input.setText("")
-        preview.setTextColor(colorAccent)
-        preview.text = ctx.getString(R.string.composer_copied, Languages.displayName(replyLang))
+        setLine(ctx.getString(R.string.composer_copied, Languages.displayName(replyLang)), colorAccent)
         stopEditing()
         main.removeCallbacks(resetRunnable)
         main.postDelayed(resetRunnable, COPIED_HINT_MS)
     }
 
+    /** Nichts zu zeigen: Zeile ausblenden, damit die Antwortzeile schmal bleibt. */
     private fun showPlaceholder() {
-        preview.setTextColor(colorDim)
-        preview.text = ctx.getString(R.string.composer_placeholder, Languages.displayName(replyLang))
+        preview.text = ""
+        preview.visibility = View.GONE
     }
 
     companion object {

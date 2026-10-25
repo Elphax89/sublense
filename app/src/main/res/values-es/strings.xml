@@ -93,4 +93,6 @@
     <string name="update_check_failed">No se pudo buscar actualizaciones.</string>
     <string name="update_checking">Buscando actualizaciones …</string>
     <string name="version_line">Versión %1$s · Buscar actualizaciones</string>
+    <string name="lens_peek">Original</string>
+    <string name="cd_move">Mover la lente arriba o abajo</string>
 </resources>
