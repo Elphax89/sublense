@@ -104,4 +104,7 @@
     <string name="cd_swap">Переместить строку ответа над/под линзу</string>
     <string name="swap_no_room_above">Над линзой нет места – сначала сдвиньте линзу вниз</string>
     <string name="swap_no_room_below">Под линзой нет места – сначала сдвиньте линзу вверх</string>
+    <string name="cd_swap_langs">Поменять языки</string>
+    <string name="swap_langs_impossible">Нельзя поменять: сначала выберите исходный язык, или целевой язык не распознаётся на экране</string>
+    <string name="label_lens_color">Цвет линзы</string>
 </resources>

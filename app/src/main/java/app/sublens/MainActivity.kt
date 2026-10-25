@@ -260,6 +260,16 @@ class MainActivity : Activity() {
             scripts.indexOf(prefs.autoScript),
         ) { pos -> prefs.autoScript = scripts[pos] }
         updateScriptRow()
+        findViewById<View>(R.id.btn_swap_langs).setOnClickListener {
+            if (prefs.swapLanguages(null)) {
+                findViewById<Spinner>(R.id.spinner_source).setSelection(sources.indexOf(prefs.sourceLang).coerceAtLeast(0))
+                findViewById<Spinner>(R.id.spinner_target).setSelection(targets.indexOf(prefs.targetLang).coerceAtLeast(0))
+                updateScriptRow()
+            } else {
+                Toast.makeText(this, R.string.swap_langs_impossible, Toast.LENGTH_SHORT).show()
+            }
+        }
+        setupLensColors()
 
         val replies = listOf(Languages.AUTO) + targets
         setupSpinner(
@@ -275,6 +285,39 @@ class MainActivity : Activity() {
 
     private fun updateScriptRow() {
         rowScript.visibility = if (prefs.sourceLang == Languages.AUTO) View.VISIBLE else View.GONE
+    }
+
+    /** Farbkreise für Rahmen und Griffe der Linse. */
+    private fun setupLensColors() {
+        val row = findViewById<LinearLayout>(R.id.row_lens_color)
+        val d = resources.displayMetrics.density
+        val size = (36 * d).toInt()
+        fun render() {
+            for (i in 0 until row.childCount) {
+                val c = Prefs.LENS_COLORS[i]
+                val selected = c == prefs.lensColor
+                val v = row.getChildAt(i)
+                v.background = android.graphics.drawable.GradientDrawable().apply {
+                    shape = android.graphics.drawable.GradientDrawable.OVAL
+                    setColor(c)
+                    setStroke((if (selected) 3 * d else 1 * d).toInt(), if (selected) 0xFFFFFFFF.toInt() else 0x55000000)
+                }
+                v.scaleX = if (selected) 1.12f else 1f
+                v.scaleY = v.scaleX
+            }
+        }
+        row.removeAllViews()
+        for (c in Prefs.LENS_COLORS) {
+            val v = View(this)
+            v.layoutParams = LinearLayout.LayoutParams(size, size).apply { marginEnd = (10 * d).toInt() }
+            v.contentDescription = getString(R.string.label_lens_color)
+            v.setOnClickListener {
+                prefs.lensColor = c
+                render()
+            }
+            row.addView(v)
+        }
+        render()
     }
 
     private fun setupSpinner(id: Int, labels: List<String>, selected: Int, onSelect: (Int) -> Unit) {

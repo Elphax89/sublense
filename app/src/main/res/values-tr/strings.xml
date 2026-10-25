@@ -104,4 +104,7 @@
     <string name="cd_swap">Yanıt satırını merceğin üstüne/altına al</string>
     <string name="swap_no_room_above">Merceğin üstünde yer yok – önce merceği aşağı kaydırın</string>
     <string name="swap_no_room_below">Merceğin altında yer yok – önce merceği yukarı kaydırın</string>
+    <string name="cd_swap_langs">Dilleri değiştir</string>
+    <string name="swap_langs_impossible">Değiştirilemiyor: önce bir kaynak dil seçin ya da hedef dil ekrandan okunamıyor</string>
+    <string name="label_lens_color">Mercek rengi</string>
 </resources>

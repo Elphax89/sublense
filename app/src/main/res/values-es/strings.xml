@@ -104,4 +104,7 @@
     <string name="cd_swap">Mover la línea de respuesta arriba/abajo de la lente</string>
     <string name="swap_no_room_above">No hay espacio encima de la lente: bájala primero</string>
     <string name="swap_no_room_below">No hay espacio debajo de la lente: súbela primero</string>
+    <string name="cd_swap_langs">Intercambiar idiomas</string>
+    <string name="swap_langs_impossible">No se puede intercambiar: elige primero un idioma de origen, o el idioma de destino no se puede leer en pantalla</string>
+    <string name="label_lens_color">Color de la lente</string>
 </resources>

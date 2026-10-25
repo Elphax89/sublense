@@ -104,4 +104,7 @@
     <string name="cd_swap">Przenieś pole odpowiedzi nad/pod soczewkę</string>
     <string name="swap_no_room_above">Brak miejsca nad soczewką – najpierw przesuń ją w dół</string>
     <string name="swap_no_room_below">Brak miejsca pod soczewką – najpierw przesuń ją w górę</string>
+    <string name="cd_swap_langs">Zamień języki</string>
+    <string name="swap_langs_impossible">Nie można zamienić: najpierw wybierz język źródłowy albo język docelowy nie jest odczytywany z ekranu</string>
+    <string name="label_lens_color">Kolor soczewki</string>
 </resources>

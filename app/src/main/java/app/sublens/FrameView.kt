@@ -17,7 +17,7 @@ class FrameView(context: Context) : View(context) {
     private val density = resources.displayMetrics.density
     private val radius = 16f * density
     private val bracketLength = 26f * density
-    private val accent = context.getColor(R.color.accent)
+    private var accent = context.getColor(R.color.accent)
 
     private val linePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
@@ -46,6 +46,15 @@ class FrameView(context: Context) : View(context) {
 
     private val rect = RectF()
     private val path = Path()
+
+    /** Farbe des Rahmens (Einstellung „Farbe der Linse“). */
+    fun setColor(color: Int) {
+        accent = color
+        linePaint.color = color
+        linePaint.alpha = 130
+        bracketPaint.color = color
+        invalidate()
+    }
 
     /** Leuchtet stärker, sobald im Rahmen Text erkannt wird. */
     var active: Boolean = false

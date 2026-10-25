@@ -66,6 +66,18 @@
             android:id="@+id/value_from"
             style="@style/SubLens.Row" />
 
+        <ImageButton
+            android:id="@+id/btn_swap_langs"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="4dp"
+            android:background="@drawable/bg_chip"
+            android:contentDescription="@string/cd_swap_langs"
+            android:padding="7dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_swap" />
+
         <TextView
             style="@style/SubLens.Caption"
             android:text="@string/label_to" />

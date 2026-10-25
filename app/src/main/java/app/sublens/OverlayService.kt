@@ -283,6 +283,7 @@ class OverlayService : Service(), OverlayController.Callbacks, TextPipeline.List
                 pipeline?.reset()
             }
             Prefs.K_BAR_ABOVE -> overlay?.relayout()
+            Prefs.K_LENS_COLOR -> overlay?.applyLensColor()
             Prefs.K_COMPOSER -> overlay?.setComposerEnabled(prefs.composerEnabled)
             Prefs.K_SOURCE, Prefs.K_TARGET, Prefs.K_SCRIPT -> {
                 overlay?.clearLens()

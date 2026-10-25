@@ -35,6 +35,24 @@ class Prefs(context: Context) {
         get() = sp.getBoolean(K_COMPOSER_ABOVE, false)
         set(value) = sp.edit().putBoolean(K_COMPOSER_ABOVE, value).apply()
 
+    /** Farbe von Rahmen, Griffen und Verschieben-Knopf. */
+    var lensColor: Int
+        get() = sp.getInt(K_LENS_COLOR, LENS_COLORS[0])
+        set(value) = sp.edit().putInt(K_LENS_COLOR, value).apply()
+
+    /**
+     * Tauscht Von und Nach. [detected] wird als Ausgangssprache genommen, wenn "Von" automatisch ist.
+     * false, wenn das nicht geht (keine Sprache erkannt oder neue Ausgangssprache nicht lesbar).
+     */
+    fun swapLanguages(detected: String?): Boolean {
+        val src = if (sourceLang == Languages.AUTO) detected ?: return false else sourceLang
+        val tgt = targetLang
+        if (src == tgt || tgt !in Languages.sources() || src !in Languages.targets()) return false
+        sourceLang = tgt
+        targetLang = src
+        return true
+    }
+
     var intervalMs: Long
         get() = sp.getLong(K_INTERVAL, 500L)
         set(value) = sp.edit().putLong(K_INTERVAL, value).apply()
@@ -97,6 +115,13 @@ class Prefs(context: Context) {
         const val K_ASKED_NOTIF = "asked_notifications"
         const val K_COMPOSER = "composer_enabled"
         const val K_COMPOSER_ABOVE = "composer_above"
+        const val K_LENS_COLOR = "lens_color"
+
+        /** Türkis, Blau, Lila, Pink, Rot, Orange, Gelb, Grün, Weiß */
+        val LENS_COLORS = intArrayOf(
+            0xFF5EEAD4.toInt(), 0xFF60A5FA.toInt(), 0xFFA78BFA.toInt(), 0xFFF472B6.toInt(), 0xFFF87171.toInt(),
+            0xFFFB923C.toInt(), 0xFFFACC15.toInt(), 0xFF4ADE80.toInt(), 0xFFF8FAFC.toInt(),
+        )
         const val K_REPLY = "reply_lang"
         private const val K_TOP_PORT = "frame_top_port"
         private const val K_TOP_LAND = "frame_top_land"

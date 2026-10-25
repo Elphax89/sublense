@@ -4,6 +4,10 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.PixelFormat
 import android.graphics.Rect
+import android.widget.ImageView
+import android.view.ViewGroup
+import android.graphics.drawable.GradientDrawable
+import android.content.res.ColorStateList
 import android.graphics.Typeface
 import android.os.Build
 import android.os.SystemClock
@@ -125,6 +129,7 @@ class OverlayController(
         // Die Leiste (nur im Leisten-Modus) zeigt nur noch Text – Bedienung sitzt am Rahmen.
         barView.findViewById<View>(R.id.btn_close).visibility = View.GONE
         barView.findViewById<View>(R.id.btn_settings).visibility = View.GONE
+        applyLensColor()
         attachDrag(barView, Drag.MOVE)
         attachDrag(moveView, Drag.MOVE)
         attachDrag(topHandle, Drag.TOP_EDGE)
@@ -447,6 +452,18 @@ class OverlayController(
 
     // ---------------------------------------------------------------- Inhalt der Leiste
 
+    /** Rahmen, Griffe und Verschieben-Knopf in der gewählten Farbe. */
+    fun applyLensColor() {
+        val c = prefs.lensColor
+        frameView.setColor(c)
+        val stroke = (1.5f * density).roundToInt()
+        for (v in listOf(topHandle, bottomHandle, moveView)) {
+            val img = (v as ViewGroup).getChildAt(0) as ImageView
+            (img.background?.mutate() as? GradientDrawable)?.setStroke(stroke, c)
+            if (v === moveView) img.imageTintList = ColorStateList.valueOf(c)
+        }
+    }
+
     fun applyStyle() {
         val lensMode = prefs.lensMode
         val size = if (lensMode) 13f else prefs.textSizeSp.toFloat()
@@ -616,6 +633,16 @@ class OverlayController(
         from.text = Languages.displayName(prefs.sourceLang)
         to.text = Languages.displayName(prefs.targetLang)
         from.setOnClickListener { showLanguageList(panel, ListMode.SOURCE) }
+        panel.findViewById<View>(R.id.btn_swap_langs).setOnClickListener {
+            if (prefs.swapLanguages(detectedLang)) {
+                detectedLang = null
+                from.text = Languages.displayName(prefs.sourceLang)
+                to.text = Languages.displayName(prefs.targetLang)
+                updateChip()
+            } else {
+                toast(ctx.getString(R.string.swap_langs_impossible))
+            }
+        }
         to.setOnClickListener { showLanguageList(panel, ListMode.TARGET) }
 
         val reply = panel.findViewById<TextView>(R.id.value_reply)

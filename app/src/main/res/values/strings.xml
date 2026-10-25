@@ -106,4 +106,7 @@
     <string name="cd_swap">Swap reply line above/below the lens</string>
     <string name="swap_no_room_above">Not enough room above the lens – move the lens down first</string>
     <string name="swap_no_room_below">Not enough room below the lens – move the lens up first</string>
+    <string name="cd_swap_langs">Swap languages</string>
+    <string name="swap_langs_impossible">Can\'t swap: pick a \"From\" language first, or the target language can\'t be read from the screen</string>
+    <string name="label_lens_color">Lens colour</string>
 </resources>

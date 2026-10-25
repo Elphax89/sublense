@@ -133,6 +133,18 @@
                 android:layout_width="match_parent"
                 android:layout_height="48dp" />
 
+            <ImageButton
+                android:id="@+id/btn_swap_langs"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_gravity="center_horizontal"
+                android:background="@drawable/bg_chip"
+                android:contentDescription="@string/cd_swap_langs"
+                android:padding="8dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_swap"
+                android:tint="@color/accent" />
+
             <TextView
                 style="@style/SubLens.Caption"
                 android:text="@string/label_to" />
@@ -169,6 +181,24 @@
             <TextView
                 style="@style/SubLens.CardTitle"
                 android:text="@string/section_display" />
+
+            <TextView
+                style="@style/SubLens.Caption"
+                android:text="@string/label_lens_color" />
+
+            <HorizontalScrollView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:scrollbars="none">
+
+                <LinearLayout
+                    android:id="@+id/row_lens_color"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:paddingTop="4dp"
+                    android:paddingBottom="8dp" />
+            </HorizontalScrollView>
 
             <TextView
                 style="@style/SubLens.Caption"
