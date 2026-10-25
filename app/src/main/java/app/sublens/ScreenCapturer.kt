@@ -196,8 +196,8 @@ class ScreenCapturer(
     }
 
     companion object {
-        private const val SIG_X = 48
-        private const val SIG_Y = 24
+        const val SIG_X = 48
+        const val SIG_Y = 24
 
         /**
          * Bereich (in Ausschnitt-Koordinaten [w]×[h]), in dem sich etwas verändert hat, um eine Rasterzelle
@@ -205,9 +205,18 @@ class ScreenCapturer(
          */
         const val CELL_THRESHOLD = 22
 
-        fun changedRegion(a: IntArray, b: IntArray, w: Int, h: Int, ignore: BooleanArray? = null): Rect? {
+        /** [settleRef]: Raster vom vorigen Takt. Bewegt sich der veränderte Bereich noch, gibt es null (abwarten). */
+        fun changedRegion(
+            a: IntArray,
+            b: IntArray,
+            w: Int,
+            h: Int,
+            ignore: BooleanArray? = null,
+            settleRef: IntArray? = null,
+        ): Rect? {
             if (a.size != b.size || a.size != SIG_X * SIG_Y) return Rect(0, 0, w, h)
             var count = 0
+            var unsettled = 0
             var x0 = SIG_X
             var y0 = SIG_Y
             var x1 = -1
@@ -217,12 +226,18 @@ class ScreenCapturer(
                 if (a[i] < 0 || b[i] < 0 || kotlin.math.abs(a[i] - b[i]) <= CELL_THRESHOLD) continue
                 if (ignore != null && i < ignore.size && ignore[i]) continue
                 count++
+                if (settleRef != null && settleRef.size == b.size && settleRef[i] >= 0 &&
+                    kotlin.math.abs(settleRef[i] - b[i]) > CELL_THRESHOLD
+                ) {
+                    unsettled++
+                }
                 if (gx < x0) x0 = gx
                 if (gy < y0) y0 = gy
                 if (gx > x1) x1 = gx
                 if (gy > y1) y1 = gy
             }
             if (count < 3) return null
+            if (unsettled * 10 > count) return null
             val cw = w.toFloat() / SIG_X
             val ch = h.toFloat() / SIG_Y
             return Rect(

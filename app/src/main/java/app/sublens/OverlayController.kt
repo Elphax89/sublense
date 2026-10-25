@@ -239,8 +239,15 @@ class OverlayController(
     private fun minFrameHeight(): Int = (screenH * Prefs.MIN_HEIGHT_FRACTION).roundToInt()
 
     private fun barHeight(): Int = if (barAttached) barView.height.takeIf { it > 0 } ?: dp(60f) else 0
+    /**
+     * Höhe der Antwortzeile ohne Vorschau-/Statuszeile. Nur damit wird die Linse angeordnet –
+     * erscheint "Kopiert" oder die Vorschau, wächst die Zeile von der Linse weg, die Linse bleibt stehen.
+     */
     private fun composerHeight(): Int =
-        if (composer.attached) composer.stableHeight.takeIf { it > 0 } ?: dp(80f) else 0
+        if (composer.attached) composer.baseHeight.takeIf { it > 0 } ?: composer.stableHeight.takeIf { it > 0 } ?: dp(80f) else 0
+
+    private fun composerActualHeight(): Int =
+        if (composer.attached) max(composer.stableHeight, composerHeight()) else 0
 
     /** Platz über/unter der Linse, den Leiste und Antwortzeile brauchen (ohne bzw. mit Antwortzeile). */
     private fun reserveTop(withComposer: Boolean = true): Int =
@@ -351,7 +358,7 @@ class OverlayController(
             if (barAttached) update(barView, barParams)
         }
         val composerY = if (composerAbove) {
-            frameTop - (if (barAbove) barH else 0) - composerH
+            frameTop - (if (barAbove) barH else 0) - composerActualHeight()
         } else {
             frameBottom + (if (barShown && !barAbove) barH else 0)
         }
@@ -381,8 +388,9 @@ class OverlayController(
     }
 
     /** Oberer und unterer Rand, an dem Griffe und Knöpfe liegen – dort wird kein Text gelesen. */
-    private fun cropTopInset(): Int = max(frameView.insetPx, dp(INNER_DP + HANDLE_H_DP + 2f))
-    private fun cropBottomInset(): Int = max(frameView.insetPx, dp(INNER_DP + CONTROL_DP + 2f))
+    // Gelesen wird bis direkt an den Rahmen. Griffe und Knöpfe liegen darüber, enthalten aber keine Buchstaben.
+    private fun cropTopInset(): Int = frameView.insetPx
+    private fun cropBottomInset(): Int = frameView.insetPx
 
     /** Bereich, in dem Text gelesen wird: das Rahmen-Innere ohne Rahmen, Griffe und Knöpfe. */
     private fun publishCrop() {
@@ -391,11 +399,10 @@ class OverlayController(
         val top = frameTop + offsetY + cropTopInset()
         val rect = Rect(left, top, offsetX + screenW - inset, frameTop + offsetY + frameH - cropBottomInset())
         if (rect.width() <= 0 || rect.height() <= 0) return
-        if (rect != lastCrop) {
-            // Linse verschoben: alte Übersetzungen liegen nicht mehr über ihrem Text.
-            lastCrop = rect
-            if (lens.hasContent) lens.clear()
-        }
+        if (rect == lastCrop) return
+        // Linse verschoben: alte Übersetzungen liegen nicht mehr über ihrem Text.
+        lastCrop = rect
+        if (lens.hasContent) lens.clear()
         callbacks.onCropChanged(rect)
     }
 
@@ -516,9 +523,40 @@ class OverlayController(
         updateChip()
         if (crop != lastCrop) return // inzwischen verschoben – passt nicht mehr
         if (panelView != null) return // Einstellungen offen – nichts darüber legen
-        lens.show(items, crop.left - offsetX, crop.top - offsetY, frameTop + frameH - cropBottomInset(), crop.width())
+        val addedWindows = lens.show(items, crop.left - offsetX, crop.top - offsetY, frameTop + frameH - cropBottomInset(), crop.width())
+        if (addedWindows) raiseControlsIfCovered()
         hasShownText = true
         clearStatus()
+    }
+
+    /**
+     * Neue Übersetzungsfenster liegen über allem, was vorher da war. Verdecken sie Griffe oder Knöpfe,
+     * werden diese neu nach oben geholt, damit sie sichtbar und bedienbar bleiben.
+     */
+    private fun raiseControlsIfCovered() {
+        if (!attached) return
+        val ctlW = controlsView.width.takeIf { it > 0 } ?: dp(100f)
+        val controls = listOf(
+            topHandle to Rect(topHandleParams.x, topHandleParams.y, topHandleParams.x + topHandleParams.width, topHandleParams.y + topHandleParams.height),
+            bottomHandle to Rect(bottomHandleParams.x, bottomHandleParams.y, bottomHandleParams.x + bottomHandleParams.width, bottomHandleParams.y + bottomHandleParams.height),
+            moveView to Rect(moveParams.x, moveParams.y, moveParams.x + moveParams.width, moveParams.y + moveParams.height),
+            controlsView to Rect(screenW - controlsParams.x - ctlW, controlsParams.y, screenW - controlsParams.x, controlsParams.y + controlsParams.height),
+        )
+        val boxes = lens.windowRects
+        for ((view, r) in controls) {
+            if (boxes.none { Rect.intersects(it, r) }) continue
+            val params = when (view) {
+                topHandle -> topHandleParams
+                bottomHandle -> bottomHandleParams
+                moveView -> moveParams
+                else -> controlsParams
+            }
+            try {
+                wm.removeViewImmediate(view)
+                wm.addView(view, params)
+            } catch (_: Exception) {
+            }
+        }
     }
 
     private fun clearStatus() {

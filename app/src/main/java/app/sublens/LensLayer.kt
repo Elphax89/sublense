@@ -56,6 +56,10 @@ class LensLayer(
     var drawnRects: List<Rect> = emptyList()
         private set
 
+    /** Dieselben Bereiche in Fensterkoordinaten. */
+    var windowRects: List<Rect> = emptyList()
+        private set
+
     val hasContent: Boolean get() = used > 0
 
     /** true, solange Blöcke wirklich über dem Original liegen (nicht ausgeblendet). */
@@ -67,9 +71,12 @@ class LensLayer(
      * Zeigt [items] an. [originX]/[originY] ist die Fensterposition der linken oberen Ecke
      * des Ausschnitts, [maxBottom] die Unterkante der Linse in Fensterkoordinaten.
      */
-    fun show(items: List<LensItem>, originX: Int, originY: Int, maxBottom: Int, cropWidth: Int) {
+    /** Gibt true zurück, wenn dabei neue Fenster hinzugekommen sind (die liegen dann obenauf). */
+    fun show(items: List<LensItem>, originX: Int, originY: Int, maxBottom: Int, cropWidth: Int): Boolean {
         val visible = items.filter { it.changed }
         val rects = ArrayList<Rect>(visible.size)
+        val wins = ArrayList<Rect>(visible.size)
+        var addedNew = false
         for ((i, item) in visible.withIndex()) {
             val box = if (i < boxes.size) boxes[i] else BoxView(ctx).also { boxes += it }
             val pad = (3f * density).roundToInt()
@@ -103,18 +110,22 @@ class LensLayer(
                 try {
                     wm.addView(box, box.params)
                     box.added = true
+                    addedNew = true
                 } catch (_: Exception) {
                 }
             }
             rects += Rect(left - originX, top - originY, left - originX + width, top - originY + height)
+            wins += Rect(left, top, left + width, top + height)
         }
         // Übrige Fenster entfernen
         for (i in visible.size until boxes.size) removeBox(boxes[i])
         while (boxes.size > visible.size + SPARE) boxes.removeAt(boxes.size - 1)
         used = visible.size
         drawnRects = rects
+        windowRects = wins
         applyVisibility()
         onChanged?.invoke()
+        return addedNew
     }
 
     fun clear() {
@@ -122,6 +133,7 @@ class LensLayer(
         boxes.clear()
         used = 0
         drawnRects = emptyList()
+        windowRects = emptyList()
         onChanged?.invoke()
     }
 

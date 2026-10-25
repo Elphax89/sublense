@@ -91,6 +91,10 @@ class ComposerWindow(
     var stableHeight = 0
         private set
 
+    /** Höhe ohne Vorschau-/Statuszeile (für die Anordnung der Linse). */
+    var baseHeight = 0
+        private set
+
     private var normalY = 0
     private var imeShift = 0
     private var hadFocus = false
@@ -116,6 +120,7 @@ class ComposerWindow(
         view.addOnLayoutChangeListener { _, _, top, _, bottom, _, oldTop, _, oldBottom ->
             if (!editing && bottom - top != oldBottom - oldTop) {
                 stableHeight = bottom - top
+                if (preview.visibility == View.GONE) baseHeight = stableHeight
                 listener.onComposerHeightChanged()
             }
         }

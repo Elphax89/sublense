@@ -105,7 +105,7 @@ class TextPipeline(
      * Liest [bitmap]. Ist [region] gesetzt, werden nur Blöcke darin neu übersetzt; alle anderen
      * bleiben genau so stehen wie zuletzt (kein Zucken, wenn sich nur z. B. ein GIF bewegt).
      */
-    fun process(bitmap: Bitmap, crop: Rect, region: Rect? = null) {
+    fun process(bitmap: Bitmap, crop: Rect, region: Rect? = null, drawn: List<Rect> = emptyList()) {
         if (closed) {
             bitmap.recycle()
             busy = false
@@ -116,7 +116,7 @@ class TextPipeline(
         val rec = recognizerFor(script)
         rec.process(InputImage.fromBitmap(bitmap, 0))
             .addOnSuccessListener { text ->
-                if (!closed) restrict(buildFrame(text, script, bitmap, crop), region)?.let { onText(it) }
+                if (!closed) restrict(buildFrame(text, script, bitmap, crop), region, drawn)?.let { onText(it) }
             }
             .addOnFailureListener { e -> if (!closed) onOcrError(e) }
             .addOnCompleteListener {
@@ -159,6 +159,8 @@ class TextPipeline(
                 if (line.text.count { ch -> ch.isLetter() } < 2) continue
                 val box = line.boundingBox ?: continue
                 if (box.isEmpty) continue
+                // Vom Linsenrand angeschnittene Zeile: nur halb lesbar – weglassen.
+                if (box.top <= 1 || box.bottom >= bitmap.height - 2) continue
                 val (bg, fg) = sampleColors(bitmap, box)
                 val info = LineInfo(line.text.trim(), Rect(box), bg, fg)
                 if (group.isNotEmpty() && !fitsGroup(group, info)) {
@@ -290,10 +292,14 @@ class TextPipeline(
      * Passt das, was außerhalb zu sehen ist, nicht mehr zu dem, was wir dort anzeigen (z. B. weil
      * gescrollt wurde), wird das Bild verworfen und eine komplette Neuaufnahme angefordert (null).
      */
-    private fun restrict(frame: Frame, region: Rect?): Frame? {
+    private fun restrict(frame: Frame, region: Rect?, drawn: List<Rect>): Frame? {
         if (region == null || lastDeliveredCrop != frame.crop || lastDelivered.isEmpty()) return frame
         val inside = frame.blocks.filter { Rect.intersects(it.rect, region) }
-        val outside = frame.blocks.filter { !Rect.intersects(it.rect, region) }
+        // Unter unseren eigenen Übersetzungen kann man nichts prüfen (fremde Schrift, die die
+        // Erkennung oft gar nicht lesen kann) – nur Stellen, an denen das Original sichtbar ist.
+        val outside = frame.blocks.filter { b ->
+            !Rect.intersects(b.rect, region) && drawn.none { d -> Rect.intersects(Rect(d).apply { inset(-2, -2) }, b.rect) }
+        }
         if (looksStale(outside)) {
             listener.onStale()
             return null
@@ -306,17 +312,17 @@ class TextPipeline(
         var bad = 0
         for (b in outside) {
             val t = normalize(b.text)
-            if (t.length < 3) continue
+            if (t.length < 4) continue
             counted++
             val ok = lastDelivered.any { item ->
                 val grow = max(8, item.lineHeightPx)
                 val area = Rect(item.rect).apply { inset(-grow, -grow) }
-                Rect.intersects(area, b.rect) &&
-                    (textMatches(t, normalize(item.translated)) || textMatches(t, normalize(item.original)))
+                Rect.intersects(area, b.rect) && textMatches(t, normalize(item.original))
             }
             if (!ok) bad++
         }
-        return bad >= 2 && bad * 10 >= counted * 3
+        // Sichtbares Original, das nicht (mehr) dort steht, wo wir es kennen → es hat sich etwas verschoben.
+        return bad >= 2 || (bad == 1 && counted == 1)
     }
 
     private fun textMatches(a: String, b: String): Boolean {

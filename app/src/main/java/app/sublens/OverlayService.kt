@@ -70,6 +70,9 @@ class OverlayService : Service(), OverlayController.Callbacks, TextPipeline.List
     /** Vorheriges Raster (von Takt zu Takt) und "Unruhe" je Zelle: hoch = dort läuft eine Animation. */
     private var prevSig: IntArray? = null
     private var heat: FloatArray? = null
+    /** Bis wann eine Zelle als "animiert" gilt (auch wenn die Animation kurz pausiert). */
+    private var animUntil: LongArray? = null
+    /** Raster vom vorigen Takt – um zu prüfen, ob sich das Bild beruhigt hat. */
     /** Seit der letzten Aufnahme hat sich das ganze Bild bewegt (gescrollt, neue Nachricht). */
     private var movedAll = false
     private var videoHintShown = false
@@ -212,9 +215,11 @@ class OverlayService : Service(), OverlayController.Callbacks, TextPipeline.List
             if (rect != null && !pipe.busy && !hiddenCapture) {
                 val mask = lensMask
                 if (lensMode && mask.isNotEmpty()) {
-                    val sig = cap.signature(rect, mask)
+                    // Kein neues Bild seit dem letzten Takt = Bildschirm steht still → letztes Raster gilt weiter.
+                    val sig = cap.signature(rect, mask) ?: prevSig
                     val now = SystemClock.uptimeMillis()
                     val gapOk = now - lastHiddenAt >= max(interval, MIN_HIDDEN_GAP_MS)
+                    val previousTick = prevSig
                     if (sig != null) learnMotion(sig)
                     if (fullRequested && gapOk) {
                         fullRequested = false
@@ -228,8 +233,12 @@ class OverlayService : Service(), OverlayController.Callbacks, TextPipeline.List
                         } else if (gapOk) {
                             // Im Chat-Modus zählen Stellen, an denen ständig etwas animiert (GIFs, Sticker,
                             // animierte Emojis und Profilbilder), nicht als Änderung.
-                            val ignore = if (prefs.videoMode) null else animatedCells()
-                            val changed = ScreenCapturer.changedRegion(base, sig, rect.width(), rect.height(), ignore)
+                            // Außerdem erst lesen, wenn sich das Bild beruhigt hat (fertig gescrollt,
+                            // Nachricht fertig eingeblendet) – Animationen beruhigen sich nie und lösen nichts aus.
+                            val video = prefs.videoMode
+                            val ignore = if (video) null else animatedCells()
+                            val settleRef = if (video) null else previousTick
+                            val changed = ScreenCapturer.changedRegion(base, sig, rect.width(), rect.height(), ignore, settleRef)
                             if (changed != null) {
                                 baseline = null
                                 val region = if (movedAll) null else partialRegion(changed, mask, rect)
@@ -278,23 +287,38 @@ class OverlayService : Service(), OverlayController.Callbacks, TextPipeline.List
         }
         val global = valid > 0 && moved * 100 >= valid * GLOBAL_MOVE_PERCENT
         if (global) movedAll = true
+        val until = animUntil?.takeIf { it.size == sig.size } ?: LongArray(sig.size).also { animUntil = it }
+        val now = SystemClock.uptimeMillis()
+        val cols = ScreenCapturer.SIG_X
+        val rows = sig.size / cols
         for (i in sig.indices) {
             h[i] *= HEAT_DECAY
             if (!global && prev[i] >= 0 && sig[i] >= 0 && abs(prev[i] - sig[i]) > ScreenCapturer.CELL_THRESHOLD) h[i] += 1f
+            if (h[i] >= HEAT_ANIMATED) {
+                // Animation: Zelle und Nachbarn eine Weile ignorieren (GIF-Bilder ändern nicht jede Zelle jedes Mal).
+                val cx = i % cols
+                val cy = i / cols
+                for (dy in -ANIM_SPREAD..ANIM_SPREAD) for (dx in -ANIM_SPREAD..ANIM_SPREAD) {
+                    val x = cx + dx
+                    val y = cy + dy
+                    if (x in 0 until cols && y in 0 until rows) until[y * cols + x] = now + ANIM_HOLD_MS
+                }
+            }
         }
     }
 
     private fun animatedCells(): BooleanArray? {
-        val h = heat ?: return null
-        return BooleanArray(h.size) { h[it] >= HEAT_ANIMATED }
+        val until = animUntil ?: return null
+        val now = SystemClock.uptimeMillis()
+        return BooleanArray(until.size) { until[it] > now }
     }
 
     /** Im Chat-Modus über einem Video: einmal darauf hinweisen, dass der Video-Knopf Untertitel mitlaufen lässt. */
     private fun maybeHintVideo() {
         if (videoHintShown) return
-        val h = heat ?: return
-        val hot = h.count { it >= HEAT_ANIMATED }
-        if (hot * 100 >= h.size * VIDEO_HINT_PERCENT) {
+        val anim = animatedCells() ?: return
+        val hot = anim.count { it }
+        if (hot * 100 >= anim.size * VIDEO_HINT_PERCENT) {
             videoHintShown = true
             main.post { overlay?.showVideoHint() }
         }
@@ -359,7 +383,7 @@ class OverlayService : Service(), OverlayController.Callbacks, TextPipeline.List
                 val p = pipeline
                 if (p != null) {
                     p.busy = true
-                    p.process(bitmap, rect, region)
+                    p.process(bitmap, rect, region, lensMask)
                 } else {
                     bitmap.recycle()
                 }
@@ -489,11 +513,13 @@ class OverlayService : Service(), OverlayController.Callbacks, TextPipeline.List
     override fun onCloseRequested() = shutdown()
 
     override fun onCropChanged(rect: Rect) {
+        if (rect == cropRect) return
         cropRect = Rect(rect)
         capturer?.let { cap ->
             cap.handler.post {
                 prevSig = null
                 heat = null
+                animUntil = null
                 baseline = null
             }
         }
@@ -579,6 +605,10 @@ class OverlayService : Service(), OverlayController.Callbacks, TextPipeline.List
         /** Zweimal kurz hintereinander verändert = Animation. */
         private const val HEAT_ANIMATED = 1.5f
         private const val VIDEO_HINT_PERCENT = 30
+        /** Animierte Stellen bleiben so lange ignoriert, auch wenn sie kurz pausieren. */
+        private const val ANIM_HOLD_MS = 10_000L
+        /** … samt so vielen Nachbarzellen rundherum. */
+        private const val ANIM_SPREAD = 1
         private const val STALE_MIN_GAP_MS = 3000L
 
         @Volatile
