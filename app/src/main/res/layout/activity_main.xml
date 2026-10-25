@@ -337,11 +337,30 @@
                 android:layout_marginTop="6dp"
                 android:orientation="vertical" />
 
-            <Button
-                android:id="@+id/btn_download_target"
-                style="@style/SubLens.ButtonSmall"
+            <!-- Beliebiges Sprachpaket von Hand laden -->
+            <TextView
+                style="@style/SubLens.Caption"
                 android:layout_marginTop="12dp"
-                android:text="@string/models_download_target" />
+                android:text="@string/models_pick" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <Spinner
+                    android:id="@+id/spinner_model"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1" />
+
+                <Button
+                    android:id="@+id/btn_download_model"
+                    style="@style/SubLens.ButtonSmall"
+                    android:layout_marginStart="8dp"
+                    android:text="@string/models_download" />
+            </LinearLayout>
         </LinearLayout>
 
         <TextView

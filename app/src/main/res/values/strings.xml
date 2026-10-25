@@ -100,4 +100,7 @@
     <string name="update_check">Check for updates</string>
     <string name="update_ready">New version %1$s available – install now?</string>
     <string name="version_installed">Installed: version %1$s</string>
+    <string name="models_pick">Download a language pack</string>
+    <string name="models_download">Download</string>
+    <string name="models_installed_mark">%1$s ✓</string>
 </resources>

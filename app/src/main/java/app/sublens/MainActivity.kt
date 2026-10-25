@@ -361,21 +361,46 @@ class MainActivity : Activity() {
             isChecked = prefs.wifiOnly
             setOnCheckedChangeListener { _, checked -> prefs.wifiOnly = checked }
         }
-        val btn = findViewById<Button>(R.id.btn_download_target)
+        // Jede Sprache lässt sich von Hand laden, z. B. vor einer Reise ohne Internet.
+        val spinner = findViewById<Spinner>(R.id.spinner_model)
+        modelAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, ArrayList<String>()).also {
+            it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+            spinner.adapter = it
+        }
+        updateModelSpinner(emptySet())
+        spinner.setSelection(targets.indexOf(prefs.targetLang).coerceAtLeast(0), false)
+
+        val btn = findViewById<Button>(R.id.btn_download_model)
         btn.setOnClickListener {
+            val lang = targets.getOrNull(spinner.selectedItemPosition) ?: return@setOnClickListener
             btn.isEnabled = false
             btn.setText(R.string.models_downloading)
             val conditions = DownloadConditions.Builder().apply { if (prefs.wifiOnly) requireWifi() }.build()
-            val model = TranslateRemoteModel.Builder(prefs.targetLang).build()
+            val model = TranslateRemoteModel.Builder(lang).build()
             RemoteModelManager.getInstance().download(model, conditions)
                 .addOnSuccessListener { toast(R.string.models_download_done) }
                 .addOnFailureListener { toast(R.string.models_download_failed) }
                 .addOnCompleteListener {
                     btn.isEnabled = true
-                    btn.setText(R.string.models_download_target)
+                    btn.setText(R.string.models_download)
                     refreshModels()
                 }
         }
+    }
+
+    private var modelAdapter: ArrayAdapter<String>? = null
+
+    /** Auswahlliste: alle Sprachen, bereits geladene mit ✓. */
+    private fun updateModelSpinner(installed: Set<String>) {
+        val adapter = modelAdapter ?: return
+        adapter.clear()
+        adapter.addAll(
+            targets.map { tag ->
+                val name = Languages.displayName(tag)
+                if (tag in installed) getString(R.string.models_installed_mark, name) else name
+            },
+        )
+        adapter.notifyDataSetChanged()
     }
 
     private fun refreshModels() {
@@ -385,6 +410,7 @@ class MainActivity : Activity() {
                 if (isFinishing || isDestroyed) return@addOnSuccessListener
                 list.removeAllViews()
                 val langs = models.map { it.language }.sortedBy { Languages.displayName(it) }
+                updateModelSpinner(langs.toSet())
                 if (langs.isEmpty()) {
                     list.addView(textRow(getString(R.string.models_empty), dim = true))
                     return@addOnSuccessListener

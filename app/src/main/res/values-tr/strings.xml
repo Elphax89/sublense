@@ -98,4 +98,7 @@
     <string name="update_check">Güncellemeleri denetle</string>
     <string name="update_ready">Yeni sürüm %1$s mevcut – şimdi yüklensin mi?</string>
     <string name="version_installed">Yüklü: sürüm %1$s</string>
+    <string name="models_pick">Dil paketi indir</string>
+    <string name="models_download">İndir</string>
+    <string name="models_installed_mark">%1$s ✓</string>
 </resources>

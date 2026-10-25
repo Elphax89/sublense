@@ -98,4 +98,7 @@
     <string name="update_check">Sprawdź aktualizacje</string>
     <string name="update_ready">Nowa wersja %1$s dostępna – zainstalować teraz?</string>
     <string name="version_installed">Zainstalowana: wersja %1$s</string>
+    <string name="models_pick">Pobierz pakiet językowy</string>
+    <string name="models_download">Pobierz</string>
+    <string name="models_installed_mark">%1$s ✓</string>
 </resources>

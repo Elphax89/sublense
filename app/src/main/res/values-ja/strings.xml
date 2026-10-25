@@ -98,4 +98,7 @@
     <string name="update_check">アップデートを確認</string>
     <string name="update_ready">新しいバージョン %1$s があります – 今すぐインストール？</string>
     <string name="version_installed">インストール済み：バージョン %1$s</string>
+    <string name="models_pick">言語パックをダウンロード</string>
+    <string name="models_download">ダウンロード</string>
+    <string name="models_installed_mark">%1$s ✓</string>
 </resources>

@@ -379,8 +379,9 @@ class TextPipeline(
                 done()
                 continue
             }
-            translator.translate(raw)
-                .addOnSuccessListener { result ->
+            translator.translate(ChineseScript.forInput(raw, source))
+                .addOnSuccessListener { translated ->
+                    val result = ChineseScript.forOutput(translated, pair.substringAfter('>'))
                     cache["$pair|$raw"] = result
                     results[i] = result
                     done()

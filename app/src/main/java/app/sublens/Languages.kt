@@ -41,6 +41,11 @@ object Languages {
 
     fun displayName(tag: String): String {
         if (tag == AUTO) return autoLabel
+        // Chinesisch wird traditionell angezeigt (siehe ChineseScript).
+        if (tag == "zh") {
+            val n = Locale.forLanguageTag("zh-Hant").getDisplayName(Locale.getDefault())
+            if (n.isNotBlank()) return n.replaceFirstChar { it.titlecase(Locale.getDefault()) }
+        }
         val name = Locale.forLanguageTag(tag).getDisplayLanguage(Locale.getDefault())
         if (name.isBlank() || name.equals(tag, ignoreCase = true)) return tag.uppercase(Locale.ROOT)
         return name.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }

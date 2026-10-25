@@ -51,8 +51,9 @@ class ReplyTranslator(private val prefs: Prefs) {
         translator.downloadModelIfNeeded(conditions)
             .addOnSuccessListener {
                 if (closed) return@addOnSuccessListener
-                translator.translate(text)
-                    .addOnSuccessListener { result ->
+                translator.translate(ChineseScript.forInput(text, from))
+                    .addOnSuccessListener { translated ->
+                        val result = ChineseScript.forOutput(translated, to)
                         cache["$pair|$text"] = result
                         done(result)
                     }
