@@ -107,4 +107,8 @@
     <string name="cd_swap_langs">交換語言</string>
     <string name="swap_langs_impossible">無法交換：請先選擇來源語言，或目標語言無法從螢幕辨識</string>
     <string name="label_lens_color">鏡頭顏色</string>
+    <string name="cd_video">影片模式 開／關</string>
+    <string name="video_on">影片模式已開啟：持續讀取動態畫面（字幕）</string>
+    <string name="video_off">聊天模式：忽略動畫（GIF、表情符號、頭像）</string>
+    <string name="video_hint">鏡頭下有影片？點一下鏡頭上的 ▶，字幕就會跟著更新</string>
 </resources>

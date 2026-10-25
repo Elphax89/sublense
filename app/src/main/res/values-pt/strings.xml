@@ -107,4 +107,8 @@
     <string name="cd_swap_langs">Trocar idiomas</string>
     <string name="swap_langs_impossible">Não é possível trocar: escolha primeiro um idioma de origem, ou o idioma de destino não pode ser lido na tela</string>
     <string name="label_lens_color">Cor da lente</string>
+    <string name="cd_video">Modo vídeo sim/não</string>
+    <string name="video_on">Modo vídeo ativado: imagens em movimento são lidas continuamente (legendas)</string>
+    <string name="video_off">Modo chat: animações (GIFs, emojis, fotos de perfil) são ignoradas</string>
+    <string name="video_hint">Vídeo sob a lente? Toque em ▶ na lente para acompanhar as legendas</string>
 </resources>

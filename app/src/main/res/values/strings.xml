@@ -109,4 +109,8 @@
     <string name="cd_swap_langs">Swap languages</string>
     <string name="swap_langs_impossible">Can\'t swap: pick a \"From\" language first, or the target language can\'t be read from the screen</string>
     <string name="label_lens_color">Lens colour</string>
+    <string name="cd_video">Video mode on/off</string>
+    <string name="video_on">Video mode on: moving pictures are read continuously (subtitles)</string>
+    <string name="video_off">Chat mode: animations (GIFs, emojis, profile pictures) are ignored</string>
+    <string name="video_hint">Video under the lens? Tap ▶ on the lens so subtitles keep up</string>
 </resources>

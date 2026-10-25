@@ -107,4 +107,8 @@
     <string name="cd_swap_langs">Dilleri değiştir</string>
     <string name="swap_langs_impossible">Değiştirilemiyor: önce bir kaynak dil seçin ya da hedef dil ekrandan okunamıyor</string>
     <string name="label_lens_color">Mercek rengi</string>
+    <string name="cd_video">Video modu aç/kapat</string>
+    <string name="video_on">Video modu açık: hareketli görüntü sürekli okunur (altyazılar)</string>
+    <string name="video_off">Sohbet modu: animasyonlar (GIF, emoji, profil resimleri) yok sayılır</string>
+    <string name="video_hint">Merceğin altında video mu var? Altyazıların takip edilmesi için mercekteki ▶ simgesine dokunun</string>
 </resources>

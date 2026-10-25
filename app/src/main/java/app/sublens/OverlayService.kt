@@ -30,6 +30,7 @@ import android.view.Display
 import android.view.WindowManager
 import android.widget.Toast
 import com.google.mlkit.nl.translate.TranslateLanguage
+import kotlin.math.abs
 import kotlin.math.max
 
 /**
@@ -66,6 +67,17 @@ class OverlayService : Service(), OverlayController.Callbacks, TextPipeline.List
 
     // nur auf dem Aufnahme-Thread
     private var baseline: IntArray? = null
+    /** Vorheriges Raster (von Takt zu Takt) und "Unruhe" je Zelle: hoch = dort läuft eine Animation. */
+    private var prevSig: IntArray? = null
+    private var heat: FloatArray? = null
+    /** Seit der letzten Aufnahme hat sich das ganze Bild bewegt (gescrollt, neue Nachricht). */
+    private var movedAll = false
+    private var videoHintShown = false
+
+    /** Komplette Neuaufnahme angefordert (Anzeige passt nicht mehr zum Bild). */
+    @Volatile
+    private var fullRequested = false
+    private var lastStaleAt = 0L
     @Volatile
     private var lastHiddenAt = 0L
     private var lastTextAt = 0L
@@ -201,18 +213,31 @@ class OverlayService : Service(), OverlayController.Callbacks, TextPipeline.List
                 val mask = lensMask
                 if (lensMode && mask.isNotEmpty()) {
                     val sig = cap.signature(rect, mask)
-                    if (sig != null) {
+                    val now = SystemClock.uptimeMillis()
+                    val gapOk = now - lastHiddenAt >= max(interval, MIN_HIDDEN_GAP_MS)
+                    if (sig != null) learnMotion(sig)
+                    if (fullRequested && gapOk) {
+                        fullRequested = false
+                        baseline = null
+                        movedAll = false
+                        startHiddenCapture(cap, rect, null)
+                    } else if (sig != null) {
                         val base = baseline
-                        val now = SystemClock.uptimeMillis()
                         if (base == null || base.size != sig.size) {
                             baseline = sig
-                        } else if (now - lastHiddenAt >= max(interval, MIN_HIDDEN_GAP_MS)) {
-                            val changed = ScreenCapturer.changedRegion(base, sig, rect.width(), rect.height())
+                        } else if (gapOk) {
+                            // Im Chat-Modus zählen Stellen, an denen ständig etwas animiert (GIFs, Sticker,
+                            // animierte Emojis und Profilbilder), nicht als Änderung.
+                            val ignore = if (prefs.videoMode) null else animatedCells()
+                            val changed = ScreenCapturer.changedRegion(base, sig, rect.width(), rect.height(), ignore)
                             if (changed != null) {
                                 baseline = null
-                                startHiddenCapture(cap, rect, partialRegion(changed, mask, rect))
+                                val region = if (movedAll) null else partialRegion(changed, mask, rect)
+                                movedAll = false
+                                startHiddenCapture(cap, rect, region)
                             }
                         }
+                        if (!prefs.videoMode) maybeHintVideo()
                     }
                 } else {
                     val bitmap = cap.grab(rect)
@@ -233,6 +258,49 @@ class OverlayService : Service(), OverlayController.Callbacks, TextPipeline.List
 
     /** Linse ausblenden, warten bis das Bild ohne sie gezeichnet ist, aufnehmen, wieder einblenden. */
     /**
+     * Lernt, wo sich das Bild von Takt zu Takt ständig ändert (Animationen). Bewegt sich fast alles
+     * gleichzeitig (Scrollen), ist das keine Animation, sondern eine echte Änderung.
+     */
+    private fun learnMotion(sig: IntArray) {
+        val prev = prevSig
+        prevSig = sig
+        if (prev == null || prev.size != sig.size) {
+            heat = FloatArray(sig.size)
+            return
+        }
+        val h = heat ?: FloatArray(sig.size).also { heat = it }
+        var valid = 0
+        var moved = 0
+        for (i in sig.indices) {
+            if (prev[i] < 0 || sig[i] < 0) continue
+            valid++
+            if (abs(prev[i] - sig[i]) > ScreenCapturer.CELL_THRESHOLD) moved++
+        }
+        val global = valid > 0 && moved * 100 >= valid * GLOBAL_MOVE_PERCENT
+        if (global) movedAll = true
+        for (i in sig.indices) {
+            h[i] *= HEAT_DECAY
+            if (!global && prev[i] >= 0 && sig[i] >= 0 && abs(prev[i] - sig[i]) > ScreenCapturer.CELL_THRESHOLD) h[i] += 1f
+        }
+    }
+
+    private fun animatedCells(): BooleanArray? {
+        val h = heat ?: return null
+        return BooleanArray(h.size) { h[it] >= HEAT_ANIMATED }
+    }
+
+    /** Im Chat-Modus über einem Video: einmal darauf hinweisen, dass der Video-Knopf Untertitel mitlaufen lässt. */
+    private fun maybeHintVideo() {
+        if (videoHintShown) return
+        val h = heat ?: return
+        val hot = h.count { it >= HEAT_ANIMATED }
+        if (hot * 100 >= h.size * VIDEO_HINT_PERCENT) {
+            videoHintShown = true
+            main.post { overlay?.showVideoHint() }
+        }
+    }
+
+    /**
      * Bewegt sich nur ein Teil (GIF, Video), wird nur dort neu gelesen. Der Bereich wird um alle
      * Übersetzungen erweitert, die ihn berühren, damit keine halb verdeckt bleibt.
      * null = ganze Linse neu lesen (z. B. gescrollt).
@@ -250,7 +318,9 @@ class OverlayService : Service(), OverlayController.Callbacks, TextPipeline.List
             }
         }
         val area = r.width().toLong() * r.height()
-        return if (area * 100 > crop.width().toLong() * crop.height() * PARTIAL_MAX_PERCENT) null else r
+        val tooBig = area * 100 > crop.width().toLong() * crop.height() * PARTIAL_MAX_PERCENT ||
+            r.height() * 100 > crop.height() * PARTIAL_MAX_HEIGHT_PERCENT
+        return if (tooBig) null else r
     }
 
     private fun startHiddenCapture(cap: ScreenCapturer, rect: Rect, region: Rect? = null) {
@@ -308,6 +378,10 @@ class OverlayService : Service(), OverlayController.Callbacks, TextPipeline.List
             }
             Prefs.K_BAR_ABOVE -> overlay?.relayout()
             Prefs.K_LENS_COLOR -> overlay?.applyLensColor()
+            Prefs.K_VIDEO_MODE -> {
+                overlay?.updateVideoButton()
+                fullRequested = true
+            }
             Prefs.K_COMPOSER -> overlay?.setComposerEnabled(prefs.composerEnabled)
             Prefs.K_SOURCE, Prefs.K_TARGET, Prefs.K_SCRIPT -> {
                 overlay?.clearLens()
@@ -416,6 +490,13 @@ class OverlayService : Service(), OverlayController.Callbacks, TextPipeline.List
 
     override fun onCropChanged(rect: Rect) {
         cropRect = Rect(rect)
+        capturer?.let { cap ->
+            cap.handler.post {
+                prevSig = null
+                heat = null
+                baseline = null
+            }
+        }
     }
 
     override fun onLensChanged(rects: List<Rect>) {
@@ -460,6 +541,13 @@ class OverlayService : Service(), OverlayController.Callbacks, TextPipeline.List
         overlay?.setActive(true)
     }
 
+    override fun onStale() {
+        val now = SystemClock.uptimeMillis()
+        if (now - lastStaleAt < STALE_MIN_GAP_MS) return
+        lastStaleAt = now
+        fullRequested = true
+    }
+
     override fun onNoText() {
         overlay?.setActive(false)
         overlay?.clearLens()
@@ -482,7 +570,16 @@ class OverlayService : Service(), OverlayController.Callbacks, TextPipeline.List
         private const val IDLE_AFTER_MS = 2500L
         private const val MIN_HIDDEN_GAP_MS = 600L
         /** Bewegt sich mehr als so viel Prozent der Linse, wird alles neu gelesen. */
-        private const val PARTIAL_MAX_PERCENT = 55L
+        private const val PARTIAL_MAX_PERCENT = 40L
+        /** … oder ein Streifen höher als so viel Prozent (z. B. alle Profilbilder beim Scrollen). */
+        private const val PARTIAL_MAX_HEIGHT_PERCENT = 50
+        /** Ändern sich so viele Prozent der Zellen auf einmal, wurde gescrollt. */
+        private const val GLOBAL_MOVE_PERCENT = 25
+        private const val HEAT_DECAY = 0.85f
+        /** Zweimal kurz hintereinander verändert = Animation. */
+        private const val HEAT_ANIMATED = 1.5f
+        private const val VIDEO_HINT_PERCENT = 30
+        private const val STALE_MIN_GAP_MS = 3000L
 
         @Volatile
         var isRunning = false

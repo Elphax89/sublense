@@ -107,4 +107,8 @@
     <string name="cd_swap_langs">Поменять языки</string>
     <string name="swap_langs_impossible">Нельзя поменять: сначала выберите исходный язык, или целевой язык не распознаётся на экране</string>
     <string name="label_lens_color">Цвет линзы</string>
+    <string name="cd_video">Режим видео вкл./выкл.</string>
+    <string name="video_on">Режим видео включён: движущееся изображение читается постоянно (субтитры)</string>
+    <string name="video_off">Режим чата: анимации (GIF, эмодзи, аватары) игнорируются</string>
+    <string name="video_hint">Под линзой видео? Нажмите ▶ на линзе, чтобы субтитры обновлялись</string>
 </resources>

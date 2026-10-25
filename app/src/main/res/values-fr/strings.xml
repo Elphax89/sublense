@@ -107,4 +107,8 @@
     <string name="cd_swap_langs">Inverser les langues</string>
     <string name="swap_langs_impossible">Inversion impossible : choisissez d’abord une langue source, ou la langue cible ne peut pas être lue à l’écran</string>
     <string name="label_lens_color">Couleur de la loupe</string>
+    <string name="cd_video">Mode vidéo oui/non</string>
+    <string name="video_on">Mode vidéo activé : les images animées sont lues en continu (sous-titres)</string>
+    <string name="video_off">Mode chat : les animations (GIF, emojis, photos de profil) sont ignorées</string>
+    <string name="video_hint">Une vidéo sous la loupe ? Touchez ▶ sur la loupe pour suivre les sous-titres</string>
 </resources>

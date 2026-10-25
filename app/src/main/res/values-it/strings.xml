@@ -107,4 +107,8 @@
     <string name="cd_swap_langs">Inverti lingue</string>
     <string name="swap_langs_impossible">Impossibile invertire: scegli prima una lingua di origine, oppure la lingua di arrivo non è leggibile sullo schermo</string>
     <string name="label_lens_color">Colore della lente</string>
+    <string name="cd_video">Modalità video sì/no</string>
+    <string name="video_on">Modalità video attiva: le immagini in movimento vengono lette di continuo (sottotitoli)</string>
+    <string name="video_off">Modalità chat: le animazioni (GIF, emoji, foto profilo) vengono ignorate</string>
+    <string name="video_hint">Un video sotto la lente? Tocca ▶ sulla lente per seguire i sottotitoli</string>
 </resources>

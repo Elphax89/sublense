@@ -107,4 +107,8 @@
     <string name="cd_swap_langs">言語を入れ替え</string>
     <string name="swap_langs_impossible">入れ替えできません。先に翻訳元の言語を選ぶか、翻訳先の言語は画面から読み取れません</string>
     <string name="label_lens_color">レンズの色</string>
+    <string name="cd_video">動画モード オン／オフ</string>
+    <string name="video_on">動画モード オン：動く画面を常に読み取ります（字幕）</string>
+    <string name="video_off">チャットモード：アニメーション（GIF、絵文字、プロフィール画像）は無視されます</string>
+    <string name="video_hint">レンズの下に動画がありますか？レンズの ▶ をタップすると字幕に追従します</string>
 </resources>

@@ -44,6 +44,9 @@ class TextPipeline(
         fun onResult(items: List<LensItem>, crop: Rect, sourceLang: String?)
         fun onTextSeen()
         fun onNoText()
+
+        /** Außerhalb des neu gelesenen Bereichs passt die Anzeige nicht mehr – bitte alles neu lesen. */
+        fun onStale()
         fun onStatus(message: String)
     }
 
@@ -112,7 +115,9 @@ class TextPipeline(
         val script = Languages.scriptFor(prefs.sourceLang) ?: prefs.autoScript
         val rec = recognizerFor(script)
         rec.process(InputImage.fromBitmap(bitmap, 0))
-            .addOnSuccessListener { text -> if (!closed) onText(restrict(buildFrame(text, script, bitmap, crop), region)) }
+            .addOnSuccessListener { text ->
+                if (!closed) restrict(buildFrame(text, script, bitmap, crop), region)?.let { onText(it) }
+            }
             .addOnFailureListener { e -> if (!closed) onOcrError(e) }
             .addOnCompleteListener {
                 bitmap.recycle()
@@ -146,25 +151,49 @@ class TextPipeline(
         val separator = if (script.joinsWithoutSpace) "" else " "
         val blocks = ArrayList<Block>()
         for (block in text.textBlocks) {
-            val lines = block.lines.filter { line -> line.text.count { ch -> ch.isLetter() } >= 2 }
-            if (lines.isEmpty()) continue
-            val joined = lines.joinToString(separator) { it.text.trim() }.trim()
-            if (joined.length < 2) continue
-            val rect = Rect()
-            var heights = 0
-            for (line in lines) {
+            // Ein ML-Kit-Block kann Name (farbig, andere Größe), Zitat und Nachricht enthalten.
+            // Zeilen nur zusammenfassen, wenn Schriftgröße, Farben und Abstand zusammenpassen –
+            // sonst bekommt jeder Teil seine eigene Box mit eigener Schriftgröße.
+            var group = ArrayList<LineInfo>()
+            for (line in block.lines) {
+                if (line.text.count { ch -> ch.isLetter() } < 2) continue
                 val box = line.boundingBox ?: continue
-                if (rect.isEmpty) rect.set(box) else rect.union(box)
-                heights += box.height()
+                if (box.isEmpty) continue
+                val (bg, fg) = sampleColors(bitmap, box)
+                val info = LineInfo(line.text.trim(), Rect(box), bg, fg)
+                if (group.isNotEmpty() && !fitsGroup(group, info)) {
+                    addGroup(group, separator, blocks)
+                    group = ArrayList()
+                }
+                group += info
             }
-            if (rect.isEmpty) continue
-            val lineHeight = heights / lines.size
-            val (bg, fg) = sampleColors(bitmap, rect)
-            blocks += Block(joined, rect, lineHeight, bg, fg)
+            addGroup(group, separator, blocks)
         }
         blocks.sortWith(compareBy({ it.rect.top }, { it.rect.left }))
         val combined = blocks.joinToString("\n") { it.text }
         return Frame(blocks, Rect(crop), combined)
+    }
+
+    private class LineInfo(val text: String, val rect: Rect, val bg: Int, val fg: Int)
+
+    private fun fitsGroup(group: List<LineInfo>, line: LineInfo): Boolean {
+        val avg = group.sumOf { it.rect.height() } / group.size.toFloat()
+        val h = line.rect.height().toFloat()
+        if (max(avg, h) / max(1f, min(avg, h)) > 1.3f) return false
+        if (line.rect.top - group.last().rect.bottom > avg * 0.9f) return false
+        if (colorDistance(line.fg, group.first().fg) > 150) return false
+        if (colorDistance(line.bg, group.first().bg) > 90) return false
+        return true
+    }
+
+    private fun addGroup(group: List<LineInfo>, separator: String, out: MutableList<Block>) {
+        if (group.isEmpty()) return
+        val joined = group.joinToString(separator) { it.text }.trim()
+        if (joined.length < 2) return
+        val rect = Rect(group[0].rect)
+        for (l in group) rect.union(l.rect)
+        val lineHeight = group.sumOf { it.rect.height() } / group.size
+        out += Block(joined, rect, lineHeight, group[0].bg, group[0].fg)
     }
 
     private fun onOcrError(e: Exception) {
@@ -256,11 +285,72 @@ class TextPipeline(
 
     // ---------------------------------------------------------------- Text → Übersetzung
 
-    /** Nur Blöcke im neu gelesenen Bereich behalten (die anderen zeigen gerade unsere eigene Übersetzung). */
-    private fun restrict(frame: Frame, region: Rect?): Frame {
+    /**
+     * Nur Blöcke im neu gelesenen Bereich behalten (die anderen zeigen gerade unsere eigene Übersetzung).
+     * Passt das, was außerhalb zu sehen ist, nicht mehr zu dem, was wir dort anzeigen (z. B. weil
+     * gescrollt wurde), wird das Bild verworfen und eine komplette Neuaufnahme angefordert (null).
+     */
+    private fun restrict(frame: Frame, region: Rect?): Frame? {
         if (region == null || lastDeliveredCrop != frame.crop || lastDelivered.isEmpty()) return frame
-        val blocks = frame.blocks.filter { Rect.intersects(it.rect, region) }
-        return Frame(blocks, frame.crop, blocks.joinToString("\n") { it.text }, Rect(region))
+        val inside = frame.blocks.filter { Rect.intersects(it.rect, region) }
+        val outside = frame.blocks.filter { !Rect.intersects(it.rect, region) }
+        if (looksStale(outside)) {
+            listener.onStale()
+            return null
+        }
+        return Frame(inside, frame.crop, inside.joinToString("\n") { it.text }, Rect(region))
+    }
+
+    private fun looksStale(outside: List<Block>): Boolean {
+        var counted = 0
+        var bad = 0
+        for (b in outside) {
+            val t = normalize(b.text)
+            if (t.length < 3) continue
+            counted++
+            val ok = lastDelivered.any { item ->
+                val grow = max(8, item.lineHeightPx)
+                val area = Rect(item.rect).apply { inset(-grow, -grow) }
+                Rect.intersects(area, b.rect) &&
+                    (textMatches(t, normalize(item.translated)) || textMatches(t, normalize(item.original)))
+            }
+            if (!ok) bad++
+        }
+        return bad >= 2 && bad * 10 >= counted * 3
+    }
+
+    private fun textMatches(a: String, b: String): Boolean {
+        if (a.isEmpty() || b.isEmpty()) return false
+        if (a.length >= 3 && b.contains(a)) return true
+        if (b.length >= 3 && a.contains(b)) return true
+        return fuzzySame(a, b)
+    }
+
+    /** Toleranter Textvergleich (für animierte Emojis, die OCR mal als Buchstaben liest, mal nicht). */
+    private fun fuzzySame(a: String, b: String): Boolean {
+        if (isSameText(a, b)) return true
+        val longer = max(a.length, b.length)
+        if (longer < 6 || longer > 300) return false
+        val allowed = max(2, longer / 6)
+        if (abs(a.length - b.length) > allowed) return false
+        return levenshtein(a, b, allowed) <= allowed
+    }
+
+    /**
+     * Steht ein Block praktisch unverändert an derselben Stelle, wird exakt die alte Anzeige übernommen –
+     * so springen weder Schriftgröße noch Übersetzung, nur weil die Erkennung leicht schwankt.
+     */
+    private fun stabilize(fresh: List<LensItem>, crop: Rect): List<LensItem> {
+        if (lastDeliveredCrop != crop || lastDelivered.isEmpty()) return fresh
+        return fresh.map { n ->
+            val lh = max(1, n.lineHeightPx)
+            lastDelivered.firstOrNull { o ->
+                abs(o.rect.top - n.rect.top) <= max(6, lh / 3) &&
+                    abs(o.rect.left - n.rect.left) <= max(8, lh / 2) &&
+                    abs(o.rect.height() - n.rect.height()) <= max(6, lh / 2) &&
+                    fuzzySame(normalize(o.original), normalize(n.original))
+            } ?: n
+        }
     }
 
     /** Alte Blöcke außerhalb des neu gelesenen Bereichs. */
@@ -437,12 +527,16 @@ class TextPipeline(
                     lineHeightPx = b.lineHeight,
                 )
             }
-            publish(keptOutside(frame) + fresh, frame.crop, source)
+            val stable = stabilize(fresh, frame.crop)
+            val kept = keptOutside(frame).filter { k -> stable.none { Rect.intersects(it.rect, k.rect) } }
+            publish(kept + stable, frame.crop, source)
         }
         finish(gen)
     }
 
-    private fun publish(items: List<LensItem>, crop: Rect, source: String?) {
+    private fun publish(unsorted: List<LensItem>, crop: Rect, source: String?) {
+        // Feste Reihenfolge → jede Box bleibt in "ihrem" Fenster, nichts wird umgehängt.
+        val items = unsorted.sortedWith(compareBy({ it.rect.top }, { it.rect.left }))
         lastDelivered = items
         lastDeliveredCrop = Rect(crop)
         if (source != null) lastSource = source

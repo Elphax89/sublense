@@ -107,4 +107,8 @@
     <string name="cd_swap_langs">Sprachen tauschen</string>
     <string name="swap_langs_impossible">Tauschen nicht möglich: zuerst eine Ausgangssprache wählen, oder die Zielsprache kann nicht vom Bildschirm gelesen werden</string>
     <string name="label_lens_color">Farbe der Linse</string>
+    <string name="cd_video">Video-Modus an/aus</string>
+    <string name="video_on">Video-Modus an: bewegte Bilder werden laufend gelesen (Untertitel)</string>
+    <string name="video_off">Chat-Modus: Animationen (GIFs, Emojis, Profilbilder) werden ignoriert</string>
+    <string name="video_hint">Video unter der Linse? ▶ an der Linse antippen, damit Untertitel mitlaufen</string>
 </resources>

@@ -107,4 +107,8 @@
     <string name="cd_swap_langs">Zamień języki</string>
     <string name="swap_langs_impossible">Nie można zamienić: najpierw wybierz język źródłowy albo język docelowy nie jest odczytywany z ekranu</string>
     <string name="label_lens_color">Kolor soczewki</string>
+    <string name="cd_video">Tryb wideo wł./wył.</string>
+    <string name="video_on">Tryb wideo włączony: ruchomy obraz jest czytany na bieżąco (napisy)</string>
+    <string name="video_off">Tryb czatu: animacje (GIF-y, emoji, zdjęcia profilowe) są pomijane</string>
+    <string name="video_hint">Wideo pod soczewką? Stuknij ▶ na soczewce, aby napisy nadążały</string>
 </resources>

@@ -53,6 +53,11 @@ class Prefs(context: Context) {
         return true
     }
 
+    /** Video-Modus: Bewegung (Video) wird laufend neu gelesen. Aus = Chat-Modus, Animationen werden ignoriert. */
+    var videoMode: Boolean
+        get() = sp.getBoolean(K_VIDEO_MODE, false)
+        set(value) = sp.edit().putBoolean(K_VIDEO_MODE, value).apply()
+
     var intervalMs: Long
         get() = sp.getLong(K_INTERVAL, 500L)
         set(value) = sp.edit().putLong(K_INTERVAL, value).apply()
@@ -116,6 +121,7 @@ class Prefs(context: Context) {
         const val K_COMPOSER = "composer_enabled"
         const val K_COMPOSER_ABOVE = "composer_above"
         const val K_LENS_COLOR = "lens_color"
+        const val K_VIDEO_MODE = "video_mode"
 
         /** Türkis, Blau, Lila, Pink, Rot, Orange, Gelb, Grün, Weiß */
         val LENS_COLORS = intArrayOf(

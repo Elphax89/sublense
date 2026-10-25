@@ -126,6 +126,11 @@ class OverlayController(
         controlsView.findViewById<ImageButton>(R.id.btn_close).setOnClickListener { callbacks.onCloseRequested() }
         controlsView.findViewById<ImageButton>(R.id.btn_settings).setOnClickListener { togglePanel() }
         controlsView.findViewById<ImageButton>(R.id.btn_swap).setOnClickListener { swapComposer() }
+        controlsView.findViewById<ImageButton>(R.id.btn_video).setOnClickListener {
+            prefs.videoMode = !prefs.videoMode
+            toast(ctx.getString(if (prefs.videoMode) R.string.video_on else R.string.video_off))
+        }
+        updateVideoButton()
         // Die Leiste (nur im Leisten-Modus) zeigt nur noch Text – Bedienung sitzt am Rahmen.
         barView.findViewById<View>(R.id.btn_close).visibility = View.GONE
         barView.findViewById<View>(R.id.btn_settings).visibility = View.GONE
@@ -452,10 +457,21 @@ class OverlayController(
 
     // ---------------------------------------------------------------- Inhalt der Leiste
 
+    /** Video-Knopf: hell + Linsenfarbe = an, gedimmt = aus (Chat-Modus). */
+    fun updateVideoButton() {
+        val b = controlsView.findViewById<ImageButton>(R.id.btn_video)
+        val on = prefs.videoMode
+        b.alpha = if (on) 1f else 0.5f
+        b.imageTintList = if (on) ColorStateList.valueOf(prefs.lensColor) else null
+    }
+
+    fun showVideoHint() = toast(ctx.getString(R.string.video_hint))
+
     /** Rahmen, Griffe und Verschieben-Knopf in der gewählten Farbe. */
     fun applyLensColor() {
         val c = prefs.lensColor
         frameView.setColor(c)
+        updateVideoButton()
         val stroke = (1.5f * density).roundToInt()
         for (v in listOf(topHandle, bottomHandle, moveView)) {
             val img = (v as ViewGroup).getChildAt(0) as ImageView

@@ -86,11 +86,15 @@ class LensLayer(
             }
             val minHeight = item.rect.height() + 2 * pad
             val height = box.bind(item, width, minHeight, max(minHeight, maxBottom - top))
+            val same = box.added && box.params.x == left && box.params.y == top &&
+                box.params.width == width && box.params.height == height
             box.params.x = left
             box.params.y = top
             box.params.width = width
             box.params.height = height
-            if (box.added) {
+            if (same) {
+                // unverändert – Fenster nicht anfassen (kein Flackern, kein Neuzeichnen)
+            } else if (box.added) {
                 try {
                     wm.updateViewLayout(box, box.params)
                 } catch (_: Exception) {
@@ -214,7 +218,12 @@ class LensLayer(
         }
 
         /** Bereitet den Text vor und gibt die nötige Fensterhöhe zurück. */
+        private var boundKey: String? = null
+        private var boundHeight = 0
+
         fun bind(item: LensItem, width: Int, minHeight: Int, maxHeight: Int): Int {
+            val key = "${item.translated}|${item.background}|${item.foreground}|${item.lineHeightPx}|$width|$minHeight|$maxHeight"
+            if (key == boundKey && layout != null) return boundHeight
             bgPaint.color = item.background
             textPaint.color = item.foreground
             val avail = max(1, (width - 2 * padX).roundToInt())
@@ -229,7 +238,9 @@ class LensLayer(
             }
             layout = l
             invalidate()
-            return (l.height + 4).coerceIn(minHeight, max(minHeight, maxHeight))
+            boundKey = key
+            boundHeight = (l.height + 4).coerceIn(minHeight, max(minHeight, maxHeight))
+            return boundHeight
         }
 
         private fun makeLayout(text: String, size: Float, width: Int): StaticLayout {

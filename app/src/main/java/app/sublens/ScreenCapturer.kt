@@ -203,7 +203,9 @@ class ScreenCapturer(
          * Bereich (in Ausschnitt-Koordinaten [w]×[h]), in dem sich etwas verändert hat, um eine Rasterzelle
          * erweitert. null = nichts verändert.
          */
-        fun changedRegion(a: IntArray, b: IntArray, w: Int, h: Int): Rect? {
+        const val CELL_THRESHOLD = 22
+
+        fun changedRegion(a: IntArray, b: IntArray, w: Int, h: Int, ignore: BooleanArray? = null): Rect? {
             if (a.size != b.size || a.size != SIG_X * SIG_Y) return Rect(0, 0, w, h)
             var count = 0
             var x0 = SIG_X
@@ -212,7 +214,8 @@ class ScreenCapturer(
             var y1 = -1
             for (gy in 0 until SIG_Y) for (gx in 0 until SIG_X) {
                 val i = gy * SIG_X + gx
-                if (a[i] < 0 || b[i] < 0 || kotlin.math.abs(a[i] - b[i]) <= 22) continue
+                if (a[i] < 0 || b[i] < 0 || kotlin.math.abs(a[i] - b[i]) <= CELL_THRESHOLD) continue
+                if (ignore != null && i < ignore.size && ignore[i]) continue
                 count++
                 if (gx < x0) x0 = gx
                 if (gy < y0) y0 = gy
