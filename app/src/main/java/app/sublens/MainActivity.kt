@@ -52,6 +52,7 @@ class MainActivity : Activity() {
         setupSpeed()
         setupModels()
         btnStart.setOnClickListener { onStartClicked() }
+        findViewById<View>(R.id.btn_camera).setOnClickListener { startActivity(Intent(this, CameraActivity::class.java)) }
         setupUpdates()
 
         if (Build.VERSION.SDK_INT >= 33 && !prefs.askedNotifications && !hasNotificationPermission()) {

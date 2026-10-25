@@ -66,6 +66,15 @@ dependencies {
     implementation("com.google.android.gms:play-services-mlkit-text-recognition-korean:16.0.1")
     implementation("com.google.android.gms:play-services-mlkit-text-recognition-devanagari:16.0.1")
 
+    // QR codes via Google Play services (small APK)
+    implementation("com.google.android.gms:play-services-mlkit-barcode-scanning:18.3.1")
+
+    // Camera translation
+    implementation("androidx.camera:camera-camera2:1.4.2")
+    implementation("androidx.camera:camera-lifecycle:1.4.2")
+    implementation("androidx.camera:camera-view:1.4.2")
+    implementation("androidx.activity:activity-ktx:1.9.3")
+
     // Language identification + offline translation
     implementation("com.google.mlkit:language-id:17.0.6")
     implementation("com.google.mlkit:translate:17.0.3")

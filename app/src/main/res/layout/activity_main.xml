@@ -116,6 +116,19 @@
             style="@style/SubLens.Note"
             android:text="@string/start_hint" />
 
+        <!-- Camera: menus, signs, QR codes, photos -->
+        <Button
+            android:id="@+id/btn_camera"
+            style="@style/SubLens.ButtonPrimary"
+            android:layout_marginTop="16dp"
+            android:background="@drawable/bg_button_outline"
+            android:text="@string/btn_camera"
+            android:textColor="@color/accent" />
+
+        <TextView
+            style="@style/SubLens.Note"
+            android:text="@string/camera_note" />
+
         <!-- Language -->
         <LinearLayout style="@style/SubLens.Card"
             android:layout_marginTop="20dp">
