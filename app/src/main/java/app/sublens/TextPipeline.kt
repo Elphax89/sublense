@@ -2,6 +2,8 @@ package app.sublens
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.Color
+import android.graphics.Rect
 import android.util.Log
 import com.google.mlkit.common.MlKitException
 import com.google.mlkit.common.model.DownloadConditions
@@ -28,6 +30,8 @@ import kotlin.math.min
 
 /**
  * Bild → Text (OCR) → Sprache erkennen → übersetzen. Alles auf dem Gerät.
+ * Jeder Textblock wird einzeln übersetzt und mit Position, Hintergrund- und Schriftfarbe
+ * geliefert, damit die Übersetzung direkt in der Linse über dem Original liegen kann.
  * Wird ausschließlich vom Main-Thread bedient; ML Kit rechnet im Hintergrund.
  */
 class TextPipeline(
@@ -36,11 +40,23 @@ class TextPipeline(
     private val listener: Listener,
 ) {
     interface Listener {
-        fun onTranslation(original: String, translated: String, sourceLang: String?)
+        /** Ein Ergebnis pro Bild. [items] sind in Koordinaten des Ausschnitts [crop]. */
+        fun onResult(items: List<LensItem>, crop: Rect, sourceLang: String?)
         fun onTextSeen()
         fun onNoText()
         fun onStatus(message: String)
     }
+
+    /** Ein erkannter Textblock. */
+    private class Block(
+        val text: String,
+        val rect: Rect,
+        val lineHeight: Int,
+        val background: Int,
+        val foreground: Int,
+    )
+
+    private class Frame(val blocks: List<Block>, val crop: Rect, val combined: String)
 
     private val appContext = context.applicationContext
 
@@ -59,21 +75,24 @@ class TextPipeline(
     private val readyPairs = HashSet<String>()
     private val downloadingPairs = HashSet<String>()
     private val cache = object : LinkedHashMap<String, String>(64, 0.75f, true) {
-        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, String>?): Boolean = size > 120
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, String>?): Boolean = size > 400
     }
 
-    private var lastNormalized = ""
+    private var last: Frame? = null
     private var lastSettings = ""
     private var stickyLang: String? = null
     private var translating = false
-    private var pending: String? = null
+    private var pending: Frame? = null
+
+    /** Zuletzt angezeigte Übersetzungen – taucht eine davon im Bild auf, sieht die Kamera unser eigenes Overlay. */
+    private var shownTranslations: Set<String> = emptySet()
 
     /** Steigt bei jeder Einstellungsänderung – veraltete Ergebnisse werden verworfen. */
     private var generation = 0
 
     // ---------------------------------------------------------------- OCR
 
-    fun process(bitmap: Bitmap) {
+    fun process(bitmap: Bitmap, crop: Rect) {
         if (closed) {
             bitmap.recycle()
             busy = false
@@ -83,7 +102,7 @@ class TextPipeline(
         val script = Languages.scriptFor(prefs.sourceLang) ?: prefs.autoScript
         val rec = recognizerFor(script)
         rec.process(InputImage.fromBitmap(bitmap, 0))
-            .addOnSuccessListener { text -> if (!closed) onText(clean(text, script)) }
+            .addOnSuccessListener { text -> if (!closed) onText(buildFrame(text, script, bitmap, crop)) }
             .addOnFailureListener { e -> if (!closed) onOcrError(e) }
             .addOnCompleteListener {
                 bitmap.recycle()
@@ -110,23 +129,32 @@ class TextPipeline(
     }
 
     /**
-     * Untertitel bestehen meist aus 1–2 Zeilen, die zusammen einen Satz ergeben:
-     * Zeilen eines Blocks werden verbunden, Blöcke (z. B. zwei Sprecher) bleiben getrennt.
-     * Zeilen ohne Buchstaben (Zeitangaben, Symbole) fliegen raus.
+     * Zeilen eines Blocks werden zu einem Satz verbunden, Blöcke (Absätze, Sprecher,
+     * Chat-Nachrichten) bleiben getrennt. Zeilen ohne Buchstaben (Uhrzeiten, Symbole) fliegen raus.
      */
-    private fun clean(text: Text, script: Script): String {
+    private fun buildFrame(text: Text, script: Script, bitmap: Bitmap, crop: Rect): Frame {
         val separator = if (script.joinsWithoutSpace) "" else " "
-        return text.textBlocks
-            .sortedWith(compareBy({ it.boundingBox?.top ?: 0 }, { it.boundingBox?.left ?: 0 }))
-            .mapNotNull { block ->
-                block.lines
-                    .map { it.text.trim() }
-                    .filter { line -> line.count { ch -> ch.isLetter() } >= 2 }
-                    .joinToString(separator)
-                    .takeIf { it.isNotBlank() }
+        val blocks = ArrayList<Block>()
+        for (block in text.textBlocks) {
+            val lines = block.lines.filter { line -> line.text.count { ch -> ch.isLetter() } >= 2 }
+            if (lines.isEmpty()) continue
+            val joined = lines.joinToString(separator) { it.text.trim() }.trim()
+            if (joined.length < 2) continue
+            val rect = Rect()
+            var heights = 0
+            for (line in lines) {
+                val box = line.boundingBox ?: continue
+                if (rect.isEmpty) rect.set(box) else rect.union(box)
+                heights += box.height()
             }
-            .joinToString("\n")
-            .trim()
+            if (rect.isEmpty) continue
+            val lineHeight = heights / lines.size
+            val (bg, fg) = sampleColors(bitmap, rect)
+            blocks += Block(joined, rect, lineHeight, bg, fg)
+        }
+        blocks.sortWith(compareBy({ it.rect.top }, { it.rect.left }))
+        val combined = blocks.joinToString("\n") { it.text }
+        return Frame(blocks, Rect(crop), combined)
     }
 
     private fun onOcrError(e: Exception) {
@@ -137,38 +165,134 @@ class TextPipeline(
         }
     }
 
+    // ---------------------------------------------------------------- Farben
+
+    /**
+     * Hintergrund = häufigste Farbe direkt um den Text herum (Median des Randes),
+     * Schrift = die Pixel im Block, die sich am stärksten vom Hintergrund abheben.
+     */
+    private fun sampleColors(bitmap: Bitmap, r: Rect): Pair<Int, Int> {
+        val w = bitmap.width
+        val h = bitmap.height
+        val pad = 3
+        val ring = ArrayList<Int>(96)
+        val left = (r.left - pad).coerceIn(0, w - 1)
+        val right = (r.right + pad).coerceIn(0, w - 1)
+        val top = (r.top - pad).coerceIn(0, h - 1)
+        val bottom = (r.bottom + pad).coerceIn(0, h - 1)
+        val stepX = max(1, (right - left) / 24)
+        val stepY = max(1, (bottom - top) / 8)
+        var x = left
+        while (x <= right) {
+            ring += bitmap.getPixel(x, top)
+            ring += bitmap.getPixel(x, bottom)
+            x += stepX
+        }
+        var y = top
+        while (y <= bottom) {
+            ring += bitmap.getPixel(left, y)
+            ring += bitmap.getPixel(right, y)
+            y += stepY
+        }
+        val bg = medianColor(ring)
+
+        val inner = ArrayList<Int>(400)
+        val il = r.left.coerceIn(0, w - 1)
+        val ir = r.right.coerceIn(0, w - 1)
+        val iTop = r.top.coerceIn(0, h - 1)
+        val ib = r.bottom.coerceIn(0, h - 1)
+        val sx = max(1, (ir - il) / 40)
+        val sy = max(1, (ib - iTop) / 10)
+        y = iTop
+        while (y <= ib) {
+            x = il
+            while (x <= ir) {
+                inner += bitmap.getPixel(x, y)
+                x += sx
+            }
+            y += sy
+        }
+        val sorted = inner.sortedByDescending { colorDistance(it, bg) }
+        val take = max(1, sorted.size / 8)
+        var rs = 0
+        var gs = 0
+        var bs = 0
+        for (i in 0 until take) {
+            val c = sorted[i]
+            rs += Color.red(c)
+            gs += Color.green(c)
+            bs += Color.blue(c)
+        }
+        var fg = Color.rgb(rs / take, gs / take, bs / take)
+        if (colorDistance(fg, bg) < 90) {
+            fg = if (luminance(bg) > 0.55f) Color.BLACK else Color.WHITE
+        }
+        return Color.rgb(Color.red(bg), Color.green(bg), Color.blue(bg)) to fg
+    }
+
+    private fun medianColor(colors: List<Int>): Int {
+        if (colors.isEmpty()) return Color.BLACK
+        val r = colors.map { Color.red(it) }.sorted()[colors.size / 2]
+        val g = colors.map { Color.green(it) }.sorted()[colors.size / 2]
+        val b = colors.map { Color.blue(it) }.sorted()[colors.size / 2]
+        return Color.rgb(r, g, b)
+    }
+
+    private fun colorDistance(a: Int, b: Int): Int =
+        abs(Color.red(a) - Color.red(b)) + abs(Color.green(a) - Color.green(b)) + abs(Color.blue(a) - Color.blue(b))
+
+    private fun luminance(c: Int): Float =
+        (0.299f * Color.red(c) + 0.587f * Color.green(c) + 0.114f * Color.blue(c)) / 255f
+
     // ---------------------------------------------------------------- Text → Übersetzung
 
-    private fun onText(raw: String) {
-        if (raw.length < 2) {
-            // Nichts im Rahmen: beim nächsten Auftauchen neu anzeigen (kommt dann aus dem Cache).
-            lastNormalized = ""
+    private fun onText(frame: Frame) {
+        if (frame.blocks.isEmpty()) {
+            last = null
             listener.onNoText()
             return
         }
+        // Eigene Übersetzung im Bild? Dann war das Overlay beim Aufnehmen noch sichtbar – Bild verwerfen.
+        if (prefs.lensMode && shownTranslations.isNotEmpty() && frame.blocks.any { normalize(it.text) in shownTranslations }) return
         listener.onTextSeen()
 
         val settings = prefs.sourceLang + ">" + prefs.targetLang
-        val normalized = normalize(raw)
-        if (settings == lastSettings && isSameText(normalized, lastNormalized)) return
+        val prev = last
+        if (settings == lastSettings && prev != null && sameFrame(prev, frame)) return
         lastSettings = settings
-        lastNormalized = normalized
+        last = frame
 
         if (translating) {
-            pending = raw // nur der neueste Untertitel zählt
+            pending = frame // nur das neueste Bild zählt
             return
         }
-        detectAndTranslate(raw)
+        detectAndTranslate(frame)
     }
 
-    private fun detectAndTranslate(raw: String) {
+    private fun sameFrame(a: Frame, b: Frame): Boolean {
+        if (a.crop != b.crop || a.blocks.size != b.blocks.size) return false
+        if (!isSameText(normalize(a.combined), normalize(b.combined))) return false
+        for (i in a.blocks.indices) {
+            val ra = a.blocks[i].rect
+            val rb = b.blocks[i].rect
+            if (abs(ra.left - rb.left) > MOVE_TOLERANCE || abs(ra.top - rb.top) > MOVE_TOLERANCE ||
+                abs(ra.right - rb.right) > MOVE_TOLERANCE * 3 || abs(ra.bottom - rb.bottom) > MOVE_TOLERANCE
+            ) {
+                return false
+            }
+        }
+        return true
+    }
+
+    private fun detectAndTranslate(frame: Frame) {
         translating = true
         val gen = generation
         val chosen = prefs.sourceLang
         if (chosen != Languages.AUTO) {
-            translateWith(chosen, raw, gen)
+            translateWith(chosen, frame, gen)
             return
         }
+        val raw = frame.combined
         languageId.identifyLanguage(raw)
             .addOnSuccessListener { tag ->
                 if (closed || gen != generation) return@addOnSuccessListener
@@ -180,33 +304,34 @@ class TextPipeline(
                     raw.length < 12 && sticky != null -> sticky
                     else -> detected.also { stickyLang = it }
                 }
-                translateWith(lang, raw, gen)
+                translateWith(lang, frame, gen)
             }
             .addOnFailureListener {
-                if (!closed && gen == generation) translateWith(stickyLang ?: TranslateLanguage.ENGLISH, raw, gen)
+                if (!closed && gen == generation) translateWith(stickyLang ?: TranslateLanguage.ENGLISH, frame, gen)
             }
     }
 
-    private fun translateWith(source: String, raw: String, gen: Int) {
+    private fun translateWith(source: String, frame: Frame, gen: Int) {
         val target = prefs.targetLang
         if (source == target) {
-            deliver(raw, raw, source, gen)
+            deliver(frame, frame.blocks.map { it.text }, source, gen)
             return
         }
         val pair = "$source>$target"
-        cache["$pair|$raw"]?.let {
-            deliver(raw, it, source, gen)
+        val cached = frame.blocks.map { cache["$pair|${it.text}"] }
+        if (cached.all { it != null }) {
+            deliver(frame, cached.map { it!! }, source, gen)
             return
         }
 
         val translator = translatorFor(source, target)
         if (pair in readyPairs) {
-            runTranslation(translator, pair, raw, source, gen)
+            runTranslation(translator, pair, frame, source, gen)
             return
         }
         if (pair in downloadingPairs) {
             // Paket lädt noch (aus einem früheren Versuch) – beim nächsten Bild erneut probieren.
-            lastNormalized = ""
+            last = null
             finish(gen)
             return
         }
@@ -226,34 +351,68 @@ class TextPipeline(
                 downloadingPairs -= pair
                 readyPairs += pair
                 if (closed || gen != generation) return@addOnSuccessListener
-                runTranslation(translator, pair, raw, source, gen)
+                runTranslation(translator, pair, frame, source, gen)
             }
             .addOnFailureListener { e ->
                 downloadingPairs -= pair
                 Log.w(TAG, "Sprachpaket-Download fehlgeschlagen", e)
                 if (closed || gen != generation) return@addOnFailureListener
                 listener.onStatus(appContext.getString(R.string.status_download_failed))
-                lastNormalized = "" // nächster Versuch beim nächsten Bild
+                last = null // nächster Versuch beim nächsten Bild
                 finish(gen)
             }
     }
 
-    private fun runTranslation(translator: Translator, pair: String, raw: String, source: String, gen: Int) {
-        translator.translate(raw)
-            .addOnSuccessListener { result ->
-                cache["$pair|$raw"] = result
-                deliver(raw, result, source, gen)
+    /** Übersetzt alle Blöcke (parallel, aus dem Cache wo möglich) und liefert sie gemeinsam. */
+    private fun runTranslation(translator: Translator, pair: String, frame: Frame, source: String, gen: Int) {
+        val texts = frame.blocks.map { it.text }
+        val results = arrayOfNulls<String>(texts.size)
+        var remaining = texts.size
+        fun done() {
+            remaining--
+            if (remaining == 0) deliver(frame, results.map { it ?: "" }, source, gen)
+        }
+        for ((i, raw) in texts.withIndex()) {
+            val hit = cache["$pair|$raw"]
+            if (hit != null) {
+                results[i] = hit
+                done()
+                continue
             }
-            .addOnFailureListener { e ->
-                Log.w(TAG, "Übersetzung fehlgeschlagen", e)
-                readyPairs -= pair
-                deliver(raw, raw, source, gen) // lieber Original zeigen als nichts
-            }
+            translator.translate(raw)
+                .addOnSuccessListener { result ->
+                    cache["$pair|$raw"] = result
+                    results[i] = result
+                    done()
+                }
+                .addOnFailureListener { e ->
+                    Log.w(TAG, "Übersetzung fehlgeschlagen", e)
+                    results[i] = raw // lieber Original zeigen als nichts
+                    done()
+                }
+        }
     }
 
-    private fun deliver(original: String, translated: String, source: String?, gen: Int) {
+    private fun deliver(frame: Frame, translations: List<String>, source: String?, gen: Int) {
         if (gen != generation) return
-        if (!closed) listener.onTranslation(original, translated, source)
+        if (!closed) {
+            val items = frame.blocks.mapIndexed { i, b ->
+                LensItem(
+                    rect = Rect(b.rect),
+                    original = b.text,
+                    translated = translations[i].ifBlank { b.text },
+                    background = b.background,
+                    foreground = b.foreground,
+                    lineHeightPx = b.lineHeight,
+                )
+            }
+            shownTranslations = items
+                .filter { normalize(it.translated) != normalize(it.original) }
+                .map { normalize(it.translated) }
+                .filter { it.length >= 4 }
+                .toSet()
+            listener.onResult(items, frame.crop, source)
+        }
         finish(gen)
     }
 
@@ -289,8 +448,9 @@ class TextPipeline(
         generation++
         translating = false
         pending = null
-        lastNormalized = ""
+        last = null
         lastSettings = ""
+        shownTranslations = emptySet()
         if (prefs.sourceLang != Languages.AUTO) stickyLang = null
     }
 
@@ -348,5 +508,6 @@ class TextPipeline(
     companion object {
         private const val TAG = "SubLens"
         private const val MAX_TRANSLATORS = 3
+        private const val MOVE_TOLERANCE = 6
     }
 }

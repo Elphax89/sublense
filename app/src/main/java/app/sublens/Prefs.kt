@@ -21,6 +21,11 @@ class Prefs(context: Context) {
         get() = Script.fromKey(sp.getString(K_SCRIPT, null))
         set(value) = sp.edit().putString(K_SCRIPT, value.key).apply()
 
+    /** true = Übersetzung direkt in der Linse über dem Originaltext, false = in der Leiste. */
+    var lensMode: Boolean
+        get() = sp.getBoolean(K_LENS_MODE, true)
+        set(value) = sp.edit().putBoolean(K_LENS_MODE, value).apply()
+
     var barAbove: Boolean
         get() = sp.getBoolean(K_BAR_ABOVE, false)
         set(value) = sp.edit().putBoolean(K_BAR_ABOVE, value).apply()
@@ -79,6 +84,7 @@ class Prefs(context: Context) {
         const val K_TARGET = "target_lang"
         const val K_SCRIPT = "auto_script"
         const val K_BAR_ABOVE = "bar_above"
+        const val K_LENS_MODE = "lens_mode"
         const val K_INTERVAL = "interval_ms"
         const val K_TEXT_SIZE = "text_size_sp"
         const val K_SHOW_ORIGINAL = "show_original"

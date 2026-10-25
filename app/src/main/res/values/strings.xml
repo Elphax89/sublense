@@ -27,7 +27,7 @@
     <string name="auto_detect">Automatisch erkennen</string>
 
     <string name="section_display">Anzeige</string>
-    <string name="label_bar">Übersetzungsleiste</string>
+    <string name="label_bar">Position der Leiste</string>
     <string name="bar_above">Über dem Rahmen</string>
     <string name="bar_below">Unter dem Rahmen</string>
     <string name="label_text_size">Textgröße: %1$d sp</string>
@@ -87,4 +87,11 @@
     <string name="section_reply">Antwortzeile</string>
     <string name="composer_switch">Antwortzeile unter dem Overlay anzeigen</string>
     <string name="reply_note">Du schreibst in deiner Sprache (oben bei „Nach“). SubLens übersetzt in die Sprache des Chats und legt den Text in die Zwischenablage – dann einfach in Telegram, WeChat &amp; Co. einfügen.</string>
+    <string name="label_mode">Übersetzung anzeigen</string>
+    <string name="choice_lens">In der Linse</string>
+    <string name="choice_bar">In der Leiste</string>
+    <string name="mode_lens_long">Direkt in der Linse – über dem Originaltext (Text blinkt kurz beim Lesen)</string>
+    <string name="mode_bar_long">In der Leiste neben der Linse – ohne Blinken</string>
+    <string name="lens_hint">Übersetzung antippen zeigt kurz das Original</string>
+    <string name="stopping">Wird beendet …</string>
 </resources>

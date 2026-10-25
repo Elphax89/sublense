@@ -60,17 +60,26 @@ class MainActivity : Activity() {
 
     override fun onResume() {
         super.onResume()
+        OverlayService.stateListener = { refreshStartButton() }
         refreshPermissions()
         refreshStartButton()
         refreshModels()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        OverlayService.stateListener = null
     }
 
     // ---------------------------------------------------------------- Start / Stopp
 
     private fun onStartClicked() {
         if (OverlayService.isRunning) {
+            btnStart.isEnabled = false
+            btnStart.setText(R.string.stopping)
             startService(Intent(this, OverlayService::class.java).setAction(OverlayService.ACTION_STOP))
-            btnStart.postDelayed({ refreshStartButton() }, 400)
+            // Falls die Rückmeldung des Dienstes ausbleibt: spätestens dann neu anzeigen.
+            btnStart.postDelayed({ refreshStartButton() }, 1500)
             return
         }
         if (!Settings.canDrawOverlays(this)) {
@@ -105,6 +114,7 @@ class MainActivity : Activity() {
     }
 
     private fun refreshStartButton() {
+        btnStart.isEnabled = true
         if (OverlayService.isRunning) {
             btnStart.setText(R.string.stop)
             btnStart.setBackgroundResource(R.drawable.bg_button_danger)
@@ -212,6 +222,10 @@ class MainActivity : Activity() {
     // ---------------------------------------------------------------- Anzeige & Tempo
 
     private fun setupDisplay() {
+        val mode = findViewById<RadioGroup>(R.id.radio_mode)
+        mode.check(if (prefs.lensMode) R.id.radio_lens else R.id.radio_bar)
+        mode.setOnCheckedChangeListener { _, checkedId -> prefs.lensMode = checkedId == R.id.radio_lens }
+
         val group = findViewById<RadioGroup>(R.id.radio_bar_pos)
         group.check(if (prefs.barAbove) R.id.radio_above else R.id.radio_below)
         group.setOnCheckedChangeListener { _, checkedId -> prefs.barAbove = checkedId == R.id.radio_above }

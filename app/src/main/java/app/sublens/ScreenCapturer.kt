@@ -124,6 +124,56 @@ class ScreenCapturer(
         }
     }
 
+    /**
+     * Kleiner Fingerabdruck des Ausschnitts (Helligkeit auf einem groben Raster), um zu merken,
+     * ob sich unter der Linse etwas bewegt. Punkte in [mask] (eigene Übersetzungen) zählen nicht.
+     * Gibt null zurück, wenn seit dem letzten Mal kein neues Bild kam (= nichts hat sich geändert).
+     */
+    fun signature(crop: Rect, mask: List<Rect>): IntArray? {
+        val r = reader ?: return null
+        val image = try {
+            r.acquireLatestImage()
+        } catch (_: Exception) {
+            null
+        } ?: return null
+        try {
+            if (image.width != width || image.height != height) return null
+            val c = Rect(crop)
+            if (!c.intersect(0, 0, image.width, image.height)) return null
+            val plane = image.planes[0]
+            if (plane.pixelStride != 4) return null
+            val rowStride = plane.rowStride
+            val buf = plane.buffer
+            val out = IntArray(SIG_X * SIG_Y)
+            val margin = 4
+            for (gy in 0 until SIG_Y) {
+                val y = (gy + 0.5f) * c.height() / SIG_Y
+                for (gx in 0 until SIG_X) {
+                    val x = (gx + 0.5f) * c.width() / SIG_X
+                    val xi = x.toInt()
+                    val yi = y.toInt()
+                    val masked = mask.any { m ->
+                        xi >= m.left - margin && xi < m.right + margin && yi >= m.top - margin && yi < m.bottom + margin
+                    }
+                    if (masked) {
+                        out[gy * SIG_X + gx] = -1
+                        continue
+                    }
+                    val idx = (c.top + yi) * rowStride + (c.left + xi) * 4
+                    val rr = buf.get(idx).toInt() and 0xFF
+                    val gg = buf.get(idx + 1).toInt() and 0xFF
+                    val bb = buf.get(idx + 2).toInt() and 0xFF
+                    out[gy * SIG_X + gx] = (rr * 3 + gg * 6 + bb) / 10
+                }
+            }
+            return out
+        } catch (_: Exception) {
+            return null
+        } finally {
+            image.close()
+        }
+    }
+
     fun release() {
         handler.removeCallbacksAndMessages(null)
         handler.post {
@@ -143,5 +193,26 @@ class ScreenCapturer(
             }
         }
         thread.quitSafely()
+    }
+
+    companion object {
+        private const val SIG_X = 48
+        private const val SIG_Y = 24
+
+        /** Hat sich außerhalb der eigenen Übersetzungen sichtbar etwas verändert? */
+        fun changed(a: IntArray, b: IntArray): Boolean {
+            if (a.size != b.size) return true
+            var count = 0
+            for (i in a.indices) {
+                val x = a[i]
+                val y = b[i]
+                if (x < 0 || y < 0) continue
+                if (kotlin.math.abs(x - y) > 22) {
+                    count++
+                    if (count >= 3) return true
+                }
+            }
+            return false
+        }
     }
 }

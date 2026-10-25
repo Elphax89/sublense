@@ -172,6 +172,33 @@
 
             <TextView
                 style="@style/SubLens.Caption"
+                android:text="@string/label_mode" />
+
+            <RadioGroup
+                android:id="@+id/radio_mode"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <RadioButton
+                    android:id="@+id/radio_lens"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="44dp"
+                    android:text="@string/mode_lens_long"
+                    android:textColor="@color/text_main" />
+
+                <RadioButton
+                    android:id="@+id/radio_bar"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="44dp"
+                    android:text="@string/mode_bar_long"
+                    android:textColor="@color/text_main" />
+            </RadioGroup>
+
+            <TextView
+                style="@style/SubLens.Caption"
                 android:text="@string/label_bar" />
 
             <RadioGroup

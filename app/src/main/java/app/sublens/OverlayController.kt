@@ -45,6 +45,9 @@ class OverlayController(
         fun onOpenApp()
         fun onReplyPreview(text: String)
         fun onReplyCopy(text: String)
+
+        /** Übersetzungen in der Linse geändert: [rects] in Ausschnitt-Koordinaten, leer = nichts verdeckt. */
+        fun onLensChanged(rects: List<Rect>)
     }
 
     private enum class ListMode { SOURCE, TARGET, REPLY }
@@ -64,6 +67,11 @@ class OverlayController(
         override fun onReplyLanguageTapped() = openPanel(ListMode.REPLY)
         override fun onComposerHeightChanged() = layoutAll()
     })
+
+    private val lens = LensLayer(ctx, wm).also { layer ->
+        layer.onChanged = { callbacks.onLensChanged(if (layer.showing) layer.drawnRects else emptyList()) }
+    }
+    private var lastCrop: Rect? = null
 
     private val tvTranslation: TextView = barView.findViewById(R.id.translation)
     private val tvOriginal: TextView = barView.findViewById(R.id.original)
@@ -120,6 +128,7 @@ class OverlayController(
 
     fun destroy() {
         closePanel()
+        lens.destroy()
         composer.detach()
         for (v in listOf(frameView, barView, handleView)) {
             try {
@@ -173,8 +182,11 @@ class OverlayController(
 
     /**
      * Ordnet Rahmen, Leiste, Griff und Antwortzeile an. Reihenfolge von oben nach unten:
-     *  Leiste oben:  [Leiste] [Rahmen] [Griff]  [Antwortzeile]
-     *  Leiste unten: [Griff]  [Rahmen] [Leiste] [Antwortzeile]
+     *  Leiste-Modus, Leiste oben:  [Leiste] [Rahmen] [Griff]  [Antwortzeile]
+     *  Leiste-Modus, Leiste unten: [Griff]  [Rahmen] [Leiste] [Antwortzeile]
+     *  Linsen-Modus, Leiste oben:  [Leiste] [Rahmen + Griff] [Antwortzeile]
+     *  Linsen-Modus, Leiste unten: [Griff]  [Rahmen] [Antwortzeile] [Leiste]
+     * Im Linsen-Modus sitzt die Antwortzeile also immer direkt unter der Linse.
      */
     private fun layoutAll() {
         if (screenW <= 0 || screenH <= 0) return
@@ -182,14 +194,19 @@ class OverlayController(
         val tabH = dp(HANDLE_H_DP)
         val tabW = dp(HANDLE_W_DP)
         val above = prefs.barAbove
+        val lensMode = prefs.lensMode
         val composerH = if (composer.attached) composer.stableHeight.takeIf { it > 0 } ?: dp(92f) else 0
+        // Im Linsen-Modus mit Leiste oben liegt der Griff auf der Unterkante der Linse.
+        val handleInside = lensMode && above
+        val handleOutside = if (handleInside) 0 else tabH
 
         frameH = frameH.coerceIn(minFrameHeight(), maxFrameHeight())
         val reserveTop = if (above) barH else tabH
-        val reserveBottom = (if (above) tabH else barH) + composerH
+        val reserveBottom = (if (above) handleOutside else barH) + composerH
         val minTop = reserveTop
         val maxTop = max(minTop, screenH - frameH - reserveBottom)
         frameTop = frameTop.coerceIn(minTop, maxTop)
+        val frameBottom = frameTop + frameH
 
         frameParams.x = 0
         frameParams.y = frameTop
@@ -199,19 +216,32 @@ class OverlayController(
         barParams.x = 0
         barParams.width = screenW
         barParams.height = WindowManager.LayoutParams.WRAP_CONTENT
-        barParams.y = if (above) frameTop - barH else frameTop + frameH
+        barParams.y = when {
+            above -> frameTop - barH
+            lensMode -> frameBottom + composerH
+            else -> frameBottom
+        }
 
         handleParams.width = tabW
         handleParams.height = tabH
         handleParams.x = (screenW - tabW) / 2
-        handleParams.y = if (above) frameTop + frameH else frameTop - tabH
+        handleParams.y = when {
+            handleInside -> frameBottom - tabH
+            above -> frameBottom
+            else -> frameTop - tabH
+        }
 
         if (attached) {
             update(frameView, frameParams)
             update(barView, barParams)
             update(handleView, handleParams)
         }
-        composer.place(frameTop + frameH + (if (above) tabH else barH), screenW)
+        val composerY = when {
+            lensMode -> frameBottom + (if (above) handleOutside else 0)
+            above -> frameBottom + tabH
+            else -> frameBottom + barH
+        }
+        composer.place(composerY, screenW)
         publishCrop()
     }
 
@@ -242,7 +272,13 @@ class OverlayController(
         val left = offsetX + inset
         val top = frameTop + offsetY + inset
         val rect = Rect(left, top, offsetX + screenW - inset, frameTop + offsetY + frameH - inset)
-        if (rect.width() > 0 && rect.height() > 0) callbacks.onCropChanged(rect)
+        if (rect.width() <= 0 || rect.height() <= 0) return
+        if (rect != lastCrop) {
+            // Linse verschoben: alte Übersetzungen liegen nicht mehr über ihrem Text.
+            lastCrop = rect
+            if (lens.hasContent) lens.clear()
+        }
+        callbacks.onCropChanged(rect)
     }
 
     private fun saveFrame() {
@@ -324,10 +360,13 @@ class OverlayController(
     // ---------------------------------------------------------------- Inhalt der Leiste
 
     fun applyStyle() {
-        val size = prefs.textSizeSp.toFloat()
+        val lensMode = prefs.lensMode
+        val size = if (lensMode) 13f else prefs.textSizeSp.toFloat()
         tvTranslation.setTextSize(TypedValue.COMPLEX_UNIT_SP, size)
+        tvTranslation.maxLines = if (lensMode) 2 else 4
+        if (!lensMode && lens.hasContent) lens.clear()
         tvOriginal.setTextSize(TypedValue.COMPLEX_UNIT_SP, max(11f, size * 0.65f))
-        if (!prefs.showOriginal) tvOriginal.visibility = View.GONE
+        if (!prefs.showOriginal || lensMode) tvOriginal.visibility = View.GONE
         if (prefs.sourceLang != Languages.AUTO) detectedLang = null
         updateChip()
     }
@@ -349,6 +388,31 @@ class OverlayController(
         tvOriginal.visibility = if (showOrig) View.VISIBLE else View.GONE
     }
 
+    /** Übersetzungen direkt in die Linse legen. [crop] ist der Ausschnitt, aus dem sie stammen. */
+    fun showLens(items: List<LensItem>, crop: Rect, sourceLang: String?) {
+        detectedLang = if (prefs.sourceLang == Languages.AUTO) sourceLang else null
+        updateChip()
+        if (crop != lastCrop) return // inzwischen verschoben – passt nicht mehr
+        if (panelView != null) return // Einstellungen offen – nichts darüber legen
+        lens.show(items, crop.left - offsetX, crop.top - offsetY, frameTop + frameH - frameView.insetPx)
+        if (!hasShownText || tvTranslation.typeface?.isItalic == true) {
+            hasShownText = true
+            tvTranslation.setTextColor(colorDim)
+            tvTranslation.setTypeface(null, Typeface.NORMAL)
+            tvTranslation.setText(R.string.lens_hint)
+        }
+    }
+
+    fun clearLens() {
+        if (lens.hasContent) lens.clear()
+    }
+
+    /** Für die Aufnahme kurz ausblenden (true) bzw. wieder zeigen. Gibt zurück, ob etwas ausgeblendet wurde. */
+    fun setLensHiddenForCapture(hidden: Boolean): Boolean {
+        lens.setCaptureHidden(hidden)
+        return lens.hasContent
+    }
+
     fun showStatus(message: String) {
         tvTranslation.setTextColor(colorDim)
         tvTranslation.setTypeface(null, Typeface.ITALIC)
@@ -359,6 +423,7 @@ class OverlayController(
     /** Kein Text mehr im Rahmen. Vor dem ersten Text bleibt der Hinweis stehen. */
     fun showIdle() {
         if (!hasShownText) return
+        if (prefs.lensMode) return
         showStatus(ctx.getString(R.string.bar_idle))
     }
 
@@ -467,6 +532,21 @@ class OverlayController(
             prefs.composerEnabled = false
             on.isSelected = false
             off.isSelected = true
+        }
+
+        val lensChoice = panel.findViewById<TextView>(R.id.choice_lens)
+        val barChoice = panel.findViewById<TextView>(R.id.choice_bar)
+        lensChoice.isSelected = prefs.lensMode
+        barChoice.isSelected = !prefs.lensMode
+        lensChoice.setOnClickListener {
+            prefs.lensMode = true
+            lensChoice.isSelected = true
+            barChoice.isSelected = false
+        }
+        barChoice.setOnClickListener {
+            prefs.lensMode = false
+            lensChoice.isSelected = false
+            barChoice.isSelected = true
         }
 
         val above = panel.findViewById<TextView>(R.id.choice_above)
