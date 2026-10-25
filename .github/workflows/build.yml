@@ -43,10 +43,10 @@ jobs:
           echo "::add-mask::$KEYSTORE_PASSWORD"
           echo "SUBLENS_PASSWORD=$KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
 
-      - name: Build APK
+      - name: Test and build APK
         run: |
           chmod +x gradlew
-          if ! ./gradlew assembleRelease --console=plain > build.log 2>&1; then
+          if ! ./gradlew testReleaseUnitTest assembleRelease --console=plain > build.log 2>&1; then
             cat build.log
             # Errors as annotations so they show up without downloading the log
             grep -E "^e: |error:|What went wrong|Could not|FAILED|Exception" build.log | head -25 | while IFS= read -r line; do echo "::error::$line"; done

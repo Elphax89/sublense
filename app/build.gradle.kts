@@ -78,4 +78,8 @@ dependencies {
     // Language identification + offline translation
     implementation("com.google.mlkit:language-id:17.0.6")
     implementation("com.google.mlkit:translate:17.0.3")
+
+    // Unit tests on the build machine (online translation against a mock service); real org.json instead of Android's stub
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.json:json:20240303")
 }

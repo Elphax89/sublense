@@ -27,7 +27,10 @@ import com.google.mlkit.common.model.RemoteModelManager
 import com.google.mlkit.nl.translate.TranslateLanguage
 import com.google.mlkit.nl.translate.TranslateRemoteModel
 
-/** Home screen: permissions, start/stop and all settings. */
+/**
+ * Home screen: permissions (only while missing), start/stop and all settings, in the same order as
+ * the desktop panel – Language, Translation (offline / online), Lens, Offline language packs, About.
+ */
 class MainActivity : Activity() {
 
     private lateinit var prefs: Prefs
@@ -48,6 +51,7 @@ class MainActivity : Activity() {
 
         setupPermissions()
         setupLanguages()
+        setupTranslation()
         setupDisplay()
         setupSpeed()
         setupModels()
@@ -66,6 +70,7 @@ class MainActivity : Activity() {
         OverlayService.stateListener = { refreshStartButton() }
         refreshPermissions()
         refreshStartButton()
+        refreshTranslation()
         refreshModels()
         if (!Updater.downloading) Updater.check(this, force = false) { release, _ -> showUpdate(release) }
     }
@@ -207,7 +212,6 @@ class MainActivity : Activity() {
                 requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), REQ_NOTIFICATIONS)
             }
         }
-        if (Build.VERSION.SDK_INT < 33) findViewById<View>(R.id.row_notif).visibility = View.GONE
     }
 
     private fun openOverlaySettings() {
@@ -232,6 +236,10 @@ class MainActivity : Activity() {
             setTextColor(getColor(if (notifOk) R.color.ok else R.color.text_dim))
         }
         findViewById<View>(R.id.btn_notif).visibility = if (notifOk) View.GONE else View.VISIBLE
+        findViewById<View>(R.id.row_overlay).visibility = if (overlayOk) View.GONE else View.VISIBLE
+        findViewById<View>(R.id.row_notif).visibility = if (notifOk) View.GONE else View.VISIBLE
+        // Everything granted → the card disappears.
+        findViewById<View>(R.id.card_permissions).visibility = if (overlayOk && notifOk) View.GONE else View.VISIBLE
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
@@ -336,6 +344,41 @@ class MainActivity : Activity() {
         }
     }
 
+    // ---------------------------------------------------------------- Translation (offline / online)
+
+    private fun setupTranslation() {
+        val group = findViewById<RadioGroup>(R.id.radio_engine)
+        group.setOnCheckedChangeListener { _, checkedId ->
+            val online = checkedId == R.id.radio_online
+            if (online == prefs.onlineEnabled) return@setOnCheckedChangeListener
+            prefs.onlineEnabled = online
+            if (online) {
+                OnlineTranslator.resume()
+                val p = Providers.byId(prefs.onlineProvider)
+                // Not set up yet → straight to the catalog.
+                if (p == null || !OnlineTranslator.isConfigured(this, p)) openOnline()
+            }
+            refreshTranslation()
+        }
+        findViewById<View>(R.id.btn_online_setup).setOnClickListener { openOnline() }
+    }
+
+    private fun openOnline() = startActivity(Intent(this, OnlineActivity::class.java))
+
+    private fun refreshTranslation() {
+        val p = Providers.byId(prefs.onlineProvider)
+        val configured = p != null && OnlineTranslator.isConfigured(this, p)
+        findViewById<RadioGroup>(R.id.radio_engine).check(if (prefs.onlineEnabled) R.id.radio_online else R.id.radio_offline)
+        findViewById<TextView>(R.id.engine_status).text = when {
+            !prefs.onlineEnabled -> getString(R.string.engine_status_offline)
+            !configured -> getString(R.string.engine_status_not_set)
+            else -> getString(R.string.engine_status_online, OnlineTranslator.summary(this) ?: p!!.name)
+        }
+        findViewById<Button>(R.id.btn_online_setup).setText(if (configured) R.string.engine_manage else R.string.engine_setup)
+        findViewById<TextView>(R.id.footer).text =
+            if (prefs.onlineEnabled && configured) getString(R.string.footer_online, p!!.name) else getString(R.string.footer)
+    }
+
     // ---------------------------------------------------------------- Display & speed
 
     private fun setupDisplay() {
@@ -370,6 +413,10 @@ class MainActivity : Activity() {
         findViewById<Switch>(R.id.switch_original).apply {
             isChecked = prefs.showOriginal
             setOnCheckedChangeListener { _, checked -> prefs.showOriginal = checked }
+        }
+        findViewById<Switch>(R.id.switch_video).apply {
+            isChecked = prefs.videoMode
+            setOnCheckedChangeListener { _, checked -> prefs.videoMode = checked }
         }
     }
 

@@ -100,7 +100,7 @@ class CameraActivity : ComponentActivity() {
         setContentView(R.layout.activity_camera)
         prefs = Prefs(this)
         Languages.autoLabel = getString(R.string.auto_detect)
-        translator = CameraTranslator(prefs)
+        translator = CameraTranslator(this, prefs)
         translator.onSlow = { setStatus(getString(R.string.cam_downloading)) }
         analysisExecutor = Executors.newSingleThreadExecutor()
 

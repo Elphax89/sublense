@@ -42,7 +42,8 @@ const shown = new Map(); // key → element
   setupComposer();
   new ResizeObserver(drawBorder).observe($('frame'));
   sublens.onSettings((s) => {
-    const changedLangs = !settings || s.from !== settings.from || s.to !== settings.to;
+    const changedLangs = !settings || s.from !== settings.from || s.to !== settings.to ||
+      s.onlineActive !== settings.onlineActive || s.onlineSummary !== settings.onlineSummary;
     settings = s;
     applySettings();
     if (changedLangs) resetReading();
@@ -191,14 +192,20 @@ function setStatus(text, button) {
   if (button) btn.textContent = button;
 }
 
-function flashStatus(text) {
+let flashUntil = 0;
+function flashStatus(text, ms = 2600) {
   setStatus(text);
   clearTimeout(statusTimer);
-  statusTimer = setTimeout(() => showModelStatus(), 2600);
+  flashUntil = Date.now() + ms;
+  statusTimer = setTimeout(() => {
+    flashUntil = 0;
+    showModelStatus();
+  }, ms);
 }
 
 let needModel = false;
 function showModelStatus() {
+  if (Date.now() < flashUntil) return; // a short message is showing – it comes back to this afterwards
   if (modelState.status === 'downloading') {
     const pct = modelState.total ? Math.floor((modelState.loaded / modelState.total) * 100) : 0;
     setStatus(fmt(T.statusModel, pct));
@@ -458,6 +465,8 @@ async function read(g) {
     }
     needModel = !!res.needModel;
     showModelStatus();
+    // Online service not usable right now → said once, then SubLens quietly translates offline.
+    if (res.notice) flashStatus(res.notice, 5000);
     if (!res.translations) return;
     render(res, pixels, g);
   } catch (e) {

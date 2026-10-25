@@ -54,6 +54,13 @@ object ChineseScript {
         }
     }
 
+    /** Text in the right characters for [targetLang] (for results that may come in either script). */
+    fun inScriptOf(text: String, targetLang: String): String = when (targetLang) {
+        ZH -> convert(toTraditional, text)
+        Languages.ZH_HANS -> convert(toSimplified, text)
+        else -> text
+    }
+
     /** Traditional ↔ simplified without a translation model (both variants share one ML Kit pack). */
     fun convertBetween(text: String, from: String, to: String): String = forOutput(forInput(text, from), to)
 

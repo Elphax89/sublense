@@ -31,6 +31,15 @@ contextBridge.exposeInMainWorld('sublens', {
   modelState: () => ipcRenderer.invoke('engine:model-state'),
   deleteDownloads: () => ipcRenderer.invoke('engine:delete'),
 
+  online: {
+    state: () => ipcRenderer.invoke('online:state'),
+    set: (patch) => ipcRenderer.invoke('online:set', patch),
+    setKey: (id, key) => ipcRenderer.invoke('online:set-key', { id, key }),
+    test: (id) => ipcRenderer.invoke('online:test', id),
+    models: (id) => ipcRenderer.invoke('online:models', id),
+    paste: (id) => ipcRenderer.invoke('online:paste', id || null),
+  },
+
   copy: (text) => ipcRenderer.send('clipboard:write', text),
   openExternal: (url) => ipcRenderer.send('open:external', url),
 });

@@ -22,7 +22,8 @@ import kotlin.math.max
 import kotlin.math.min
 
 /**
- * Image → text (OCR) → detect language → translate. All on the device.
+ * Image → text (OCR) → detect language → translate. All on the device – unless online
+ * translation is switched on: then the texts go to the chosen AI service (offline as fallback).
  * Each text block is translated separately and delivered with position, background and text colour,
  * so the translation can sit right over the original in the lens.
  * Used from the main thread only; ML Kit computes in the background.
@@ -71,6 +72,15 @@ class TextPipeline(
     private val cache = object : LinkedHashMap<String, String>(64, 0.75f, true) {
         override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, String>?): Boolean = size > 400
     }
+    private val onlineCache = object : LinkedHashMap<String, String>(64, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, String>?): Boolean = size > 600
+    }
+
+    /** Recently seen original lines – context for online translation (and for your reply). */
+    private val recentOriginals = ArrayList<String>()
+
+    /** The chat lines seen last, oldest first. */
+    val recentLines: List<String> get() = recentOriginals.toList()
 
     private var last: Frame? = null
     private var lastSettings = ""
@@ -297,6 +307,55 @@ class TextPipeline(
             deliver(frame, frame.blocks.map { ChineseScript.convertBetween(it.text, source, target) }, source, gen)
             return
         }
+        if (OnlineTranslator.isActive(appContext)) {
+            translateOnline(source, frame, gen)
+            return
+        }
+        translateOffline(source, frame, gen)
+    }
+
+    /**
+     * All new texts of the screen in one request, so the AI sees the whole conversation.
+     * Texts it has translated before come from the cache (nothing is sent twice).
+     * If it fails, this frame is translated offline and online is paused for a while.
+     */
+    private fun translateOnline(source: String, frame: Frame, gen: Int) {
+        val target = prefs.targetLang
+        val key = "${prefs.sourceLang}>$target|"
+        val texts = frame.blocks.map { it.text }
+        val known = texts.map { onlineCache[key + it] }
+        if (known.all { it != null }) {
+            deliver(frame, known.map { it!! }, source, gen)
+            return
+        }
+        val todo = texts.filterIndexed { i, _ -> known[i] == null }.distinct()
+        val context = (recentOriginals + texts).filter { it !in todo }.distinct().takeLast(CONTEXT_LINES)
+        // With "Detect automatically" the AI recognises the language itself (also mixed chats).
+        val from = if (prefs.sourceLang == Languages.AUTO) null else source
+        OnlineTranslator.translate(appContext, todo, from, target, context) { out, failure ->
+            if (closed || gen != generation) return@translate
+            if (out == null) {
+                showOnlineFailure(failure?.kind)
+                translateOffline(source, frame, gen)
+                return@translate
+            }
+            onlineNotice = null
+            for (i in todo.indices) onlineCache[key + todo[i]] = ChineseScript.inScriptOf(out[i], target)
+            deliver(frame, texts.map { onlineCache[key + it] ?: it }, source, gen)
+        }
+    }
+
+    private var onlineNotice: OnlineClient.Failure? = null
+
+    /** Tell once why SubLens translates offline right now. */
+    private fun showOnlineFailure(kind: OnlineClient.Failure?) {
+        if (kind == null || kind == onlineNotice) return
+        onlineNotice = kind
+        listener.onStatus(appContext.getString(OnlineTranslator.fallbackMessage(kind)))
+    }
+
+    private fun translateOffline(source: String, frame: Frame, gen: Int) {
+        val target = prefs.targetLang
         val pair = "$source>$target"
         val cached = frame.blocks.map { cache["$pair|${it.text}"] }
         if (cached.all { it != null }) {
@@ -399,6 +458,11 @@ class TextPipeline(
         val items = unsorted.sortedWith(compareBy({ it.rect.top }, { it.rect.left }))
         lastDelivered = items
         lastDeliveredCrop = Rect(crop)
+        for (it in items) {
+            recentOriginals.remove(it.original)
+            recentOriginals.add(it.original)
+        }
+        while (recentOriginals.size > CONTEXT_LINES * 2) recentOriginals.removeAt(0)
         if (source != null) lastSource = source
         shownTranslations = items
             .filter { normalize(it.translated) != normalize(it.original) }
@@ -454,6 +518,7 @@ class TextPipeline(
         lastDelivered = emptyList()
         lastDeliveredCrop = null
         if (prefs.sourceLang != Languages.AUTO) stickyLang = null
+        onlineNotice = null
     }
 
     fun close() {
@@ -511,5 +576,6 @@ class TextPipeline(
         private const val TAG = "SubLens"
         private const val MAX_TRANSLATORS = 3
         private const val MOVE_TOLERANCE = 6
+        private const val CONTEXT_LINES = 12
     }
 }

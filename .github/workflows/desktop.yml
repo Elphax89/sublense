@@ -14,7 +14,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Reads and translates a test picture with plain Node: text recognition, language detection, NLLB translation.
+  # Online client against a mock service; then reads and translates a test picture with plain Node:
+  # text recognition, language detection, NLLB translation.
   engine:
     runs-on: ubuntu-latest
     defaults:
@@ -26,6 +27,8 @@ jobs:
         with:
           node-version: "22"
       - run: npm ci --no-audit --no-fund
+      - name: Online translation (mock service)
+        run: npm run test:online
       - uses: actions/cache@v4
         with:
           path: /tmp/sublens-smoke

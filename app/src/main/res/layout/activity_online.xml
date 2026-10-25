@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Online translation: master switch, "paste any key", one card per service, privacy -->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/scroll"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg"
+    android:fillViewport="true"
+    android:fitsSystemWindows="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingStart="18dp"
+        android:paddingTop="12dp"
+        android:paddingEnd="18dp"
+        android:paddingBottom="28dp">
+
+        <!-- Header -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <ImageButton
+                android:id="@+id/btn_back"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:layout_marginStart="-8dp"
+                android:background="@drawable/bg_button_text"
+                android:contentDescription="@string/cd_back"
+                android:padding="10dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_back" />
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:layout_weight="1"
+                android:text="@string/online_title"
+                android:textColor="@color/text_main"
+                android:textSize="22sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <TextView
+            style="@style/SubLens.Note"
+            android:layout_marginTop="6dp"
+            android:text="@string/online_intro"
+            android:textSize="13sp" />
+
+        <!-- Master switch -->
+        <LinearLayout style="@style/SubLens.Card">
+
+            <Switch
+                android:id="@+id/switch_online"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:text="@string/online_switch"
+                android:textColor="@color/text_main"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/online_state"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="@color/text_dim"
+                android:textSize="13sp" />
+        </LinearLayout>
+
+        <!-- Paste a key – SubLens recognises the service -->
+        <Button
+            android:id="@+id/btn_paste_any"
+            style="@style/SubLens.ButtonPrimary"
+            android:layout_marginTop="16dp"
+            android:text="@string/online_paste_any" />
+
+        <TextView
+            style="@style/SubLens.Note"
+            android:gravity="center_horizontal"
+            android:text="@string/online_paste_hint" />
+
+        <TextView
+            style="@style/SubLens.Caption"
+            android:layout_marginTop="22dp"
+            android:text="@string/online_services" />
+
+        <LinearLayout
+            android:id="@+id/providers"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
+
+        <!-- Privacy -->
+        <LinearLayout style="@style/SubLens.Card"
+            android:layout_marginTop="20dp">
+
+            <TextView
+                style="@style/SubLens.CardTitle"
+                android:text="@string/online_privacy_title" />
+
+            <TextView
+                style="@style/SubLens.Note"
+                android:layout_marginTop="6dp"
+                android:text="@string/online_privacy"
+                android:textSize="13sp" />
+        </LinearLayout>
+    </LinearLayout>
+</ScrollView>

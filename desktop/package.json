@@ -12,7 +12,8 @@
     "start": "electron .",
     "smoke": "node test/smoke.js",
     "dist:win": "electron-builder --win nsis portable --x64 --publish never",
-    "dist:mac": "electron-builder --mac dmg --arm64 --publish never"
+    "dist:mac": "electron-builder --mac dmg --arm64 --publish never",
+    "test:online": "node test/online.js"
   },
   "dependencies": {
     "@huggingface/transformers": "4.3.1",

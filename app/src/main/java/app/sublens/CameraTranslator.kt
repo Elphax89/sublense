@@ -1,5 +1,6 @@
 package app.sublens
 
+import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Rect
 import com.google.mlkit.nl.languageid.LanguageIdentification
@@ -16,9 +17,12 @@ import com.google.mlkit.vision.text.TextRecognizer
 
 /**
  * Camera and photo translation: text recognition, QR codes, language detection and translation
- * for one picture at a time. Everything runs on the device. Callbacks arrive on the main thread.
+ * for one picture at a time. Everything runs on the device – except the translation itself when online
+ * translation is switched on (then all texts of the picture go out in one request). Callbacks arrive on the main thread.
  */
-class CameraTranslator(private val prefs: Prefs) {
+class CameraTranslator(context: Context, private val prefs: Prefs) {
+
+    private val appContext = context.applicationContext
 
     /** A QR code found in the picture. [rect] is in bitmap pixels. */
     class Qr(val value: String, val url: String?, val rect: Rect?)
@@ -32,7 +36,7 @@ class CameraTranslator(private val prefs: Prefs) {
         val status: Status,
     )
 
-    private val translator = ReplyTranslator(prefs, cacheSize = 400)
+    private val translator = ReplyTranslator(context, prefs, cacheSize = 400)
     private val languageId: LanguageIdentifier = LanguageIdentification.getClient(
         LanguageIdentificationOptions.Builder().setConfidenceThreshold(0.4f).build(),
     )
@@ -141,6 +145,43 @@ class CameraTranslator(private val prefs: Prefs) {
             done(untranslated(blocks), Status.SAME_LANGUAGE)
             return
         }
+        if (!Languages.samePack(source, target) && OnlineTranslator.isActive(appContext)) {
+            translateOnline(blocks, source, gen, done)
+            return
+        }
+        translateOffline(blocks, source, gen, done)
+    }
+
+    /** All new texts of the picture in one request; known ones (also read slightly differently) are reused. */
+    private fun translateOnline(blocks: List<TextBlock>, source: String, gen: Int, done: (List<LensItem>, Status) -> Unit) {
+        val target = prefs.targetLang
+        val pairKey = "online|${prefs.sourceLang}>$target|"
+        val results = blocks.map { similarTranslation(pairKey, it.text) }
+        val todo = blocks.indices.filter { results[it] == null }.map { blocks[it].text }.distinct()
+        if (todo.isEmpty()) {
+            done(blocks.mapIndexed { k, b -> item(b, results[k] ?: b.text) }, Status.OK)
+            return
+        }
+        val context = blocks.map { it.text }.filter { it !in todo }
+        val from = if (prefs.sourceLang == Languages.AUTO) null else source
+        OnlineTranslator.translate(appContext, todo, from, target, context) { out, _ ->
+            if (closed || gen != generation) return@translate
+            if (out == null) {
+                translateOffline(blocks, source, gen, done)
+                return@translate
+            }
+            val map = HashMap<String, String>()
+            for (i in todo.indices) {
+                val t = ChineseScript.inScriptOf(out[i], target)
+                map[todo[i]] = t
+                remember(pairKey + todo[i], t)
+            }
+            done(blocks.mapIndexed { k, b -> item(b, results[k] ?: map[b.text] ?: b.text) }, Status.OK)
+        }
+    }
+
+    private fun translateOffline(blocks: List<TextBlock>, source: String, gen: Int, done: (List<LensItem>, Status) -> Unit) {
+        val target = prefs.targetLang
         val results = arrayOfNulls<String>(blocks.size)
         var remaining = blocks.size
         var failed = false
@@ -164,8 +205,8 @@ class CameraTranslator(private val prefs: Prefs) {
                 b.text,
                 source,
                 target,
-                onSlow = {
-                    if (!slowReported && gen == generation) {
+                onSlow = { online ->
+                    if (!online && !slowReported && gen == generation) {
                         slowReported = true
                         onSlow?.invoke()
                     }

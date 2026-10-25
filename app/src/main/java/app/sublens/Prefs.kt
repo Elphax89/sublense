@@ -88,6 +88,31 @@ class Prefs(context: Context) {
         get() = sp.getBoolean(K_ASKED_NOTIF, false)
         set(value) = sp.edit().putBoolean(K_ASKED_NOTIF, value).apply()
 
+    // ---------------------------------------------------------------- Online translation
+
+    /** Translate with an online AI service instead of the on-device packs (needs a key). */
+    var onlineEnabled: Boolean
+        get() = sp.getBoolean(K_ONLINE, false)
+        set(value) = sp.edit().putBoolean(K_ONLINE, value).apply()
+
+    var onlineProvider: String
+        get() = sp.getString(K_PROVIDER, "zai") ?: "zai"
+        set(value) = sp.edit().putString(K_PROVIDER, value).apply()
+
+    /** Model chosen for a provider (picked automatically when the key is tested). */
+    fun onlineModel(provider: String): String? = sp.getString("online_model_$provider", null)
+    fun setOnlineModel(provider: String, model: String?) =
+        sp.edit().apply { if (model.isNullOrBlank()) remove("online_model_$provider") else putString("online_model_$provider", model) }.apply()
+
+    /** Server address for providers where it can be changed (own server, regional endpoint). */
+    fun onlineUrl(provider: String): String? = sp.getString("online_url_$provider", null)
+    fun setOnlineUrl(provider: String, url: String?) =
+        sp.edit().apply { if (url.isNullOrBlank()) remove("online_url_$provider") else putString("online_url_$provider", url.trim().trimEnd('/')) }.apply()
+
+    /** Last successful test per provider (shown as ✓ in the catalog). */
+    fun onlineVerified(provider: String): Boolean = sp.getBoolean("online_ok_$provider", false)
+    fun setOnlineVerified(provider: String, ok: Boolean) = sp.edit().putBoolean("online_ok_$provider", ok).apply()
+
     /** Top of the frame as a fraction of the screen height, separately for portrait and landscape. */
     fun frameTopFraction(landscape: Boolean): Float =
         sp.getFloat(if (landscape) K_TOP_LAND else K_TOP_PORT, if (landscape) 0.70f else 0.14f)
@@ -122,6 +147,8 @@ class Prefs(context: Context) {
         const val K_COMPOSER_ABOVE = "composer_above"
         const val K_LENS_COLOR = "lens_color"
         const val K_VIDEO_MODE = "video_mode"
+        const val K_ONLINE = "online_enabled"
+        const val K_PROVIDER = "online_provider"
 
         /** Teal, blue, purple, pink, red, orange, yellow, green, white */
         val LENS_COLORS = intArrayOf(

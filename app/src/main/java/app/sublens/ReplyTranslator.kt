@@ -1,5 +1,6 @@
 package app.sublens
 
+import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
@@ -10,10 +11,12 @@ import com.google.mlkit.nl.translate.TranslatorOptions
 
 /**
  * Translates your own reply (own language → chat's language).
- * Uses the same offline language packs as the subtitle translation.
+ * Uses the online AI service when it is switched on (with the chat as context, so the tone fits),
+ * otherwise – and as fallback – the same offline language packs as the subtitle translation.
  */
-class ReplyTranslator(private val prefs: Prefs, private val cacheSize: Int = 40) {
+class ReplyTranslator(context: Context, private val prefs: Prefs, private val cacheSize: Int = 40) {
 
+    private val appContext = context.applicationContext
     private val main = Handler(Looper.getMainLooper())
     private val translators = LinkedHashMap<String, Translator>()
     private val cache = object : LinkedHashMap<String, String>(32, 0.75f, true) {
@@ -22,10 +25,19 @@ class ReplyTranslator(private val prefs: Prefs, private val cacheSize: Int = 40)
     private var closed = false
 
     /**
-     * [onSlow] fires when it takes longer (usually: a language pack is downloading).
+     * [onSlow] fires when it takes longer – with true while the online service is working,
+     * false when a language pack is downloading.
+     * [chat] are the chat lines on screen (only used online, for context).
      * [onDone] delivers the translation, or null on error.
      */
-    fun translate(text: String, from: String, to: String, onSlow: () -> Unit, onDone: (String?) -> Unit) {
+    fun translate(
+        text: String,
+        from: String,
+        to: String,
+        onSlow: (online: Boolean) -> Unit,
+        chat: List<String> = emptyList(),
+        onDone: (String?) -> Unit,
+    ) {
         if (from == to) {
             onDone(text)
             return
@@ -34,6 +46,34 @@ class ReplyTranslator(private val prefs: Prefs, private val cacheSize: Int = 40)
             onDone(ChineseScript.convertBetween(text, from, to))
             return
         }
+        if (OnlineTranslator.isActive(appContext)) {
+            val key = "online|$from>$to|$text"
+            cache[key]?.let {
+                onDone(it)
+                return
+            }
+            var finished = false
+            val slow = Runnable { if (!finished && !closed) onSlow(true) }
+            main.postDelayed(slow, SLOW_AFTER_MS)
+            OnlineTranslator.translate(appContext, listOf(text), from, to, chat, reply = true) { out, _ ->
+                finished = true
+                main.removeCallbacks(slow)
+                if (closed) return@translate
+                val result = out?.firstOrNull()?.takeIf { it.isNotBlank() }
+                if (result != null) {
+                    val fixed = ChineseScript.inScriptOf(result, to)
+                    cache[key] = fixed
+                    onDone(fixed)
+                } else {
+                    translateOffline(text, from, to, onSlow, onDone)
+                }
+            }
+            return
+        }
+        translateOffline(text, from, to, onSlow, onDone)
+    }
+
+    private fun translateOffline(text: String, from: String, to: String, onSlow: (Boolean) -> Unit, onDone: (String?) -> Unit) {
         val pair = "$from>$to"
         cache["$pair|$text"]?.let {
             onDone(it)
@@ -42,7 +82,7 @@ class ReplyTranslator(private val prefs: Prefs, private val cacheSize: Int = 40)
 
         val translator = translatorFor(from, to)
         var finished = false
-        val slow = Runnable { if (!finished && !closed) onSlow() }
+        val slow = Runnable { if (!finished && !closed) onSlow(false) }
         main.postDelayed(slow, SLOW_AFTER_MS)
 
         fun done(result: String?) {

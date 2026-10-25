@@ -207,9 +207,11 @@ function pick(locale) {
   return STRINGS[base] ? base : 'en';
 }
 
+const ONLINE = require('./i18n-online');
+
 function table(locale) {
   const lang = pick(locale);
-  return { ...STRINGS.en, ...STRINGS[lang], _lang: lang };
+  return { ...STRINGS.en, ...ONLINE.en, ...STRINGS[lang], ...ONLINE[lang], _lang: lang };
 }
 
 module.exports = { table, pick };

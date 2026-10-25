@@ -2,7 +2,7 @@
 
 **Live screen translation for Android, Windows and Mac.** A transparent lens you drag over YouTube subtitles, chats or any other text on screen. The translation appears right on top of the original, in its colours and at roughly its size. Reply in the other person's language with one tap. And on holiday, point the camera at a menu, a sign or the QR code on the table.
 
-Free, open source, fully offline. No account, no ads, nothing leaves your phone.
+Free and open source. Works fully offline – no account, no ads, nothing leaves your phone. If you like, switch on **online translation with AI** (your own free key from GLM, Gemini, Groq …) for much more natural chats, slang and Chinese.
 
 ![SubLens on a phone: subtitles translated in place, a reply copied in Japanese, a Chinese menu translated with the camera, and a restaurant's ordering page translated after scanning its QR code](docs/screenshots.jpg)
 
@@ -36,7 +36,7 @@ SubLens also runs on your computer: the same lens on top of any window – subti
 - **macOS:** drag SubLens to Applications. The first time, right-click SubLens → *Open* (or *System Settings → Privacy & Security → Open Anyway*), then allow **Screen Recording** for SubLens and start it again.
 - Show or hide the lens with **Ctrl+Shift+L** (⌘⇧L on a Mac), or from the tray / menu bar icon.
 - The lens is invisible to screen capture, so it never reads its own translations and never flickers. Drag ✥ to move it and the corner to resize it; ▶ switches between chat and video mode; the reply line copies your answer in the chat's language.
-- Text recognition with Tesseract, translation with Meta's NLLB‑200 model (about 900 MB, downloaded once) – everything runs on your computer.
+- Text recognition with Tesseract, translation with Meta's NLLB‑200 model (about 900 MB, downloaded once) – everything runs on your computer. Online translation with AI works here too, with the same services and keys as on the phone.
 
 ## Features
 
@@ -51,8 +51,30 @@ SubLens also runs on your computer: the same lens on top of any window – subti
 - 🌍 **50+ languages** with automatic detection, and a ⇅ button to swap From and To. Chinese in traditional or simplified characters, and SubLens converts directly between the two.
 - 🎨 **Your lens colour.** Pick one of nine colours for the frame and handles.
 - 📴 **Offline.** Text recognition, language detection and translation run on the phone (Google ML Kit). Each language pack downloads once (about 30 MB), and you can download any pack by hand, for example before a trip.
-- 🔒 **Private.** No server, no account. Screen frames and camera pictures only live briefly in memory and are never saved.
+- 🤖 **Online with AI (optional).** An AI service translates the whole screen in one go and understands the conversation – much more natural for chats, slang and Chinese. Bring your own key; several services are free. See [Online translation](#-online-translation-optional) below.
+- 🔒 **Private.** No server of ours, no account. Screen frames and camera pictures only live briefly in memory and are never saved. With online translation, only the recognised text goes to the service you chose.
 - 🌐 **The app speaks your phone's language:** English, German, Spanish, French, Italian, Portuguese, Polish, Turkish, Russian, Chinese (simplified and traditional), Japanese and Korean.
+
+## 🤖 Online translation (optional)
+
+Offline translation is good for subtitles and short texts. For chats it often sounds stiff, and Chinese suffers most. With online translation, an AI model gets all texts of the screen at once (plus the last few lines as context) and translates them like a person would – including your replies in the reply line, and the camera.
+
+**Set it up in two minutes:** home screen → *Translation* → *Online with AI* → pick a service → **Get key ↗** (opens the provider's key page) → copy the key → **Paste key**. SubLens recognises which service a key belongs to, tests it with a sample sentence and picks a current model by itself. Or just tap **📋 Paste key from clipboard** at the top.
+
+| Service | Cost | Good to know |
+|---|---|---|
+| **GLM · Z.AI** (Zhipu AI) | Free (GLM Flash models) | Very good at Chinese |
+| **DeepSeek** | Very cheap, needs a small top-up | Excellent for Chinese and chat language; servers in China |
+| **Qwen · Alibaba Cloud** | Free starter quota for new accounts | Strong in Chinese; choose the Singapore region – keys only work in their region |
+| **Gemini · Google** | Free with a daily limit | Good in many languages; on the free tier Google may use texts to improve its products |
+| **Groq** | Free with limits | Very fast, open models (Llama, Qwen …) |
+| **OpenRouter** | Free models with a daily limit | One key for many models |
+| **OpenAI-compatible** | – | Any compatible service, or your own server such as Ollama or LM Studio |
+
+- **Your key stays yours.** It is stored encrypted (Android Keystore on the phone, the system key store on Windows and Mac) and only sent to its own service. There is no SubLens server in between.
+- **Only text is sent** – never screenshots or photos. Lines that were translated before come from a cache, so only new text goes out.
+- **Falls back to offline by itself** when there is no internet, the limit is reached or the key stops working – the lens says so once, then keeps translating offline.
+- Model names change often, so SubLens reads each service's current model list and picks a suitable fast model; you can change it on the service's card.
 
 ## How to use it
 
@@ -70,11 +92,12 @@ Android asks for screen sharing every time SubLens starts. Choose **Entire scree
 
 | Area | Options |
 |---|---|
-| Language | From (automatic or fixed), To, swap ⇅, script for automatic detection |
-| Display | Lens colour, translation in the lens or in a bar next to it, bar position, text size, show original |
-| Reply line | On/off, reply language (automatic = detected language), above or below the lens (⇅ on the lens) |
-| Refresh | Fast 0.3 s · Normal 0.5 s · Battery saver 1 s |
-| Language packs | Wi-Fi only, download any language, delete packs |
+| Language | From (automatic or fixed), To, swap ⇅, script for automatic detection, reply language (automatic = detected language) |
+| Translation | On the phone (offline) or online with AI; service, key and model in the catalog |
+| Lens | Colour, translation in the lens or in a bar next to it, bar position, text size, show original, video mode, reply line (above or below: ⇅ on the lens), refresh (fast 0.3 s · normal 0.5 s · battery saver 1 s) |
+| Offline language packs | Wi-Fi only, download any language, delete packs |
+
+The Windows and Mac panel uses the same order: Language · Translation · Lens · Offline translation model.
 
 ## Good to know
 
@@ -91,13 +114,16 @@ Android asks for screen sharing every time SubLens starts. Choose **Entire scree
 
 Plain Kotlin, no extra frameworks. Every push to `main` runs [`build.yml`](.github/workflows/build.yml): it builds the APK, publishes it as the latest release (`SubLens.apk`) and deploys the download page from `docs/` to GitHub Pages (*Settings → Pages → Source: GitHub Actions*).
 
-Build locally (JDK 17 + Android SDK): `./gradlew assembleRelease`, or open the folder in Android Studio.
+Build locally (JDK 17 + Android SDK): `./gradlew assembleRelease`, or open the folder in Android Studio. `./gradlew testReleaseUnitTest` tests online translation against a local mock service (CI runs it before every build).
 
 Releases are signed with a private key that lives only in the repository's GitHub Secrets (`SIGNING_KEYSTORE_BASE64`, `SIGNING_PASSWORD`), never in the code. If you fork this, create your own key with `keytool -genkeypair -keystore release.jks -alias sublens -keyalg RSA -keysize 4096 -validity 36500`, use the same password for store and key, and add both secrets (the keystore as `base64 -w0 release.jks`). Without them the workflow stops with a clear message; local `./gradlew assembleDebug` works with Android's debug key.
 
 | File | Purpose |
 |---|---|
 | `MainActivity.kt` | Home screen, permissions, settings, language packs, updates |
+| `OnlineActivity.kt` | Online translation catalog: services, keys (paste / recognise / test), model |
+| `OnlineTranslator.kt`, `OnlineClient.kt`, `Prompt.kt` | Online translation: one request per screen, retries, pause and offline fallback; prompt and answer parsing |
+| `Providers.kt`, `SecretStore.kt` | The services and how their models are picked; keys encrypted with the Android Keystore |
 | `OverlayService.kt` | Foreground service, screen sharing, capture loop (re-reads only what changed; learns and ignores animations in chat mode) |
 | `OverlayController.kt` | Overlay windows: lens, handles, ⚙/✕, quick settings |
 | `LensLayer.kt` | Draws translations over the original text (one small window per block) |
@@ -113,7 +139,7 @@ Releases are signed with a private key that lives only in the repository's GitHu
 | `Updater.kt` | Checks GitHub releases and installs updates |
 | `Prefs.kt`, `Languages.kt` | Settings, language lists |
 
-The desktop app lives in [`desktop/`](desktop): Electron, [Tesseract.js](https://github.com/naptha/tesseract.js) for text recognition and [Transformers.js](https://github.com/huggingface/transformers.js) with NLLB‑200 for translation. [`desktop.yml`](.github/workflows/desktop.yml) tests the engine and builds the Windows installer and macOS DMG into the `desktop-latest` release. Run it locally with `cd desktop && npm install && npm start`.
+The desktop app lives in [`desktop/`](desktop): Electron, [Tesseract.js](https://github.com/naptha/tesseract.js) for text recognition and [Transformers.js](https://github.com/huggingface/transformers.js) with NLLB‑200 for translation. Online translation is in `desktop/src/online.js` (same services, prompt and rules as Android; `npm run test:online` checks it against a mock service). [`desktop.yml`](.github/workflows/desktop.yml) tests the engine and builds the Windows installer and macOS DMG into the `desktop-latest` release. Run it locally with `cd desktop && npm install && npm start`.
 
 ## License
 

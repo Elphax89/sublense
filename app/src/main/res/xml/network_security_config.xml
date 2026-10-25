@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  All built-in services use HTTPS. Plain HTTP is allowed only so that an own server in the home
+  network (Ollama, LM Studio …) can be entered as "OpenAI-compatible" address.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

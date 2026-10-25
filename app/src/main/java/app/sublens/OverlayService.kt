@@ -152,7 +152,7 @@ class OverlayService : Service(), OverlayController.Callbacks, TextPipeline.List
 
         overlay = OverlayController(uiContext(display), prefs, this).also { it.show(size.x, size.y) }
         pipeline = TextPipeline(this, prefs, this)
-        replyTranslator = ReplyTranslator(prefs)
+        replyTranslator = ReplyTranslator(this, prefs)
         overlay?.setReplyLanguages(prefs.targetLang, replyLanguage())
         val cap = ScreenCapturer(proj) { main.post { shutdown() } }
         capturer = cap
@@ -470,7 +470,7 @@ class OverlayService : Service(), OverlayController.Callbacks, TextPipeline.List
                 fullRequested = true
             }
             Prefs.K_COMPOSER -> overlay?.setComposerEnabled(prefs.composerEnabled)
-            Prefs.K_SOURCE, Prefs.K_TARGET, Prefs.K_SCRIPT -> {
+            Prefs.K_SOURCE, Prefs.K_TARGET, Prefs.K_SCRIPT, Prefs.K_ONLINE, Prefs.K_PROVIDER -> {
                 overlay?.clearLens()
                 pipeline?.reset()
             }
@@ -494,7 +494,12 @@ class OverlayService : Service(), OverlayController.Callbacks, TextPipeline.List
             text,
             prefs.targetLang,
             to,
-            onSlow = { overlay?.composerStatus(getString(R.string.composer_downloading, Languages.displayName(to))) },
+            onSlow = { online ->
+                overlay?.composerStatus(
+                    if (online) getString(R.string.composer_translating) else getString(R.string.composer_downloading, Languages.displayName(to)),
+                )
+            },
+            chat = pipeline?.recentLines ?: emptyList(),
         ) { result ->
             if (result == null) overlay?.composerStatus(getString(R.string.composer_failed)) else onResult(result)
         }

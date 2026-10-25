@@ -7,7 +7,8 @@
 <link rel="stylesheet" href="panel.css">
 </head>
 <body>
-<main>
+<!-- Same order as the Android home screen: Start · Language · Translation · Lens · Offline model · About -->
+<main id="home">
   <header>
     <img src="../../assets/icon.png" alt="">
     <div><h1>SubLens</h1><p id="tagline"></p></div>
@@ -21,6 +22,7 @@
   <p id="hotkey" class="note"></p>
 
   <section>
+    <h2 id="hLanguage"></h2>
     <label id="lFrom"></label>
     <div class="row">
       <select id="from"></select>
@@ -28,9 +30,22 @@
     </div>
     <label id="lTo"></label>
     <select id="to"></select>
+    <label id="lReplyTo"></label>
+    <select id="replyTo"></select>
   </section>
 
   <section>
+    <h2 id="hTranslation"></h2>
+    <div class="choices">
+      <button id="engineOffline" class="choice"><b></b><small></small></button>
+      <button id="engineOnline" class="choice"><b></b><small></small></button>
+    </div>
+    <p id="engineStatus" class="note"></p>
+    <button id="onlineBtn" class="small wide"></button>
+  </section>
+
+  <section>
+    <h2 id="hLens"></h2>
     <label id="lMode"></label>
     <div class="choices">
       <button id="modeChat" class="choice"><b></b><small></small></button>
@@ -43,7 +58,7 @@
   </section>
 
   <section>
-    <label id="lModel"></label>
+    <h2 id="hModel"></h2>
     <p id="modelText"></p>
     <div id="bar" hidden><i id="barFill"></i></div>
     <button id="modelBtn" class="small primary" hidden></button>
@@ -53,6 +68,57 @@
 
   <footer><span id="footer"></span> · <a id="gh" href="#">GitHub</a></footer>
 </main>
+
+<!-- Online translation: services, keys, test -->
+<main id="catalog" hidden>
+  <header class="sub">
+    <button id="back" class="icon" title=""><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20z"/></svg></button>
+    <h1 id="cTitle"></h1>
+  </header>
+  <p id="cIntro" class="note"></p>
+
+  <section class="tight">
+    <div class="switchrow"><b id="cSwitchLabel"></b><button id="cSwitch" class="toggle" role="switch"><i></i></button></div>
+    <p id="cState" class="note"></p>
+  </section>
+
+  <button id="pasteAny" class="big"></button>
+  <p id="pasteHint" class="note center"></p>
+  <p id="pasteMsg" class="note center" hidden></p>
+
+  <label id="cServices"></label>
+  <div id="providers"></div>
+
+  <section>
+    <h2 id="cPrivacyTitle"></h2>
+    <p id="cPrivacy" class="note"></p>
+  </section>
+</main>
+
+<template id="provTpl">
+  <div class="prov">
+    <button class="phead"><span class="pname"></span><span class="pstate"></span><svg class="chev" viewBox="0 0 24 24"><path d="M16.6 8.6 12 13.2 7.4 8.6 6 10l6 6 6-6z"/></svg></button>
+    <div class="badges"></div>
+    <p class="pdesc"></p>
+    <div class="pdetails" hidden>
+      <p class="note pdata"></p>
+      <div class="row2"><button class="small getkey"></button><button class="small paste"></button></div>
+      <div class="urlbox" hidden>
+        <label class="lurl"></label>
+        <input class="url" type="text" spellcheck="false">
+        <p class="note nurl"></p>
+      </div>
+      <label class="lkey"></label>
+      <input class="key" type="password" spellcheck="false" autocomplete="off">
+      <label class="lmodel"></label>
+      <input class="model" type="text" spellcheck="false">
+      <datalist></datalist>
+      <p class="pstatus" hidden></p>
+      <div class="row"><button class="small primary test"></button><button class="link remove"></button></div>
+      <button class="small wide use"></button>
+    </div>
+  </div>
+</template>
 <script src="panel.js"></script>
 </body>
 </html>
