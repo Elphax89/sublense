@@ -15,8 +15,8 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 /**
- * Sucht auf GitHub nach einer neueren Version und installiert sie über den
- * Paket-Installer von Android. Android fragt dabei immer selbst nach einer Bestätigung.
+ * Looks for a newer version on GitHub and installs it via Android's
+ * package installer. Android always asks for confirmation itself.
  */
 object Updater {
 
@@ -46,7 +46,7 @@ object Updater {
     fun installedVersionName(ctx: Context): String =
         ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName ?: "?"
 
-    /** Zuletzt gefundenes Update, falls noch neuer als die installierte Version. */
+    /** Last update found, if still newer than the installed version. */
     fun knownUpdate(ctx: Context): Release? {
         val sp = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val code = sp.getLong(K_FOUND_CODE, 0L)
@@ -56,8 +56,8 @@ object Updater {
     }
 
     /**
-     * Fragt GitHub nach der neuesten Version. [force] = auch wenn kürzlich schon gefragt wurde.
-     * [onResult] läuft auf dem Main-Thread: Release = Update da, null = aktuell, Exception = Fehler.
+     * Asks GitHub for the newest version. [force] = even if it was checked recently.
+     * [onResult] runs on the main thread: Release = update available, null = up to date, Exception = error.
      */
     fun check(ctx: Context, force: Boolean, onResult: (Release?, Exception?) -> Unit) {
         val app = ctx.applicationContext
@@ -82,7 +82,7 @@ object Updater {
                     conn.disconnect()
                 }
                 val json = JSONObject(body)
-                // Releases heißen "build-<Nummer>", die Nummer ist der versionCode.
+                // Releases are named "build-<number>", the number is the versionCode.
                 val code = json.optString("tag_name").substringAfterLast('-').toLongOrNull() ?: 0L
                 val name = json.optString("name").substringAfterLast(' ').ifBlank { code.toString() }
                 var apkUrl: String? = null
@@ -102,15 +102,15 @@ object Updater {
                 }
                 main.post { onResult(release, null) }
             } catch (e: Exception) {
-                Log.w(TAG, "Update-Prüfung fehlgeschlagen", e)
+                Log.w(TAG, "Update check failed", e)
                 main.post { onResult(null, e) }
             }
         }.start()
     }
 
     /**
-     * Lädt die APK direkt in eine Installations-Sitzung und übergibt sie an Android.
-     * [onProgress] (0–100) und [onDone] laufen auf dem Main-Thread.
+     * Streams the APK straight into an install session and hands it to Android.
+     * [onProgress] (0–100) and [onDone] run on the main thread.
      */
     fun downloadAndInstall(ctx: Context, release: Release, onProgress: (Int) -> Unit, onDone: (Boolean) -> Unit) {
         if (downloading) return
@@ -175,7 +175,7 @@ object Updater {
                     onDone(true)
                 }
             } catch (e: Exception) {
-                Log.w(TAG, "Update fehlgeschlagen", e)
+                Log.w(TAG, "Update failed", e)
                 if (sessionId >= 0) {
                     try {
                         installer.abandonSession(sessionId)
@@ -190,7 +190,7 @@ object Updater {
         }.start()
     }
 
-    /** Antwort des Paket-Installers: Bestätigungsdialog anzeigen oder Fehler melden. */
+    /** Package installer response: show the confirmation dialog or report an error. */
     class InstallReceiver : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             when (intent.getIntExtra(PackageInstaller.EXTRA_STATUS, PackageInstaller.STATUS_FAILURE)) {
@@ -206,15 +206,15 @@ object Updater {
                         try {
                             context.startActivity(confirm)
                         } catch (e: Exception) {
-                            Log.w(TAG, "Installationsdialog nicht startbar", e)
+                            Log.w(TAG, "Could not start install dialog", e)
                         }
                     }
                 }
-                PackageInstaller.STATUS_SUCCESS -> Unit // App startet neu
-                PackageInstaller.STATUS_FAILURE_ABORTED -> Unit // abgebrochen
+                PackageInstaller.STATUS_SUCCESS -> Unit // app restarts
+                PackageInstaller.STATUS_FAILURE_ABORTED -> Unit // cancelled
                 else -> {
                     val msg = intent.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE)
-                    Log.w(TAG, "Installation fehlgeschlagen: $msg")
+                    Log.w(TAG, "Installation failed: $msg")
                     Toast.makeText(context, R.string.update_failed, Toast.LENGTH_LONG).show()
                 }
             }

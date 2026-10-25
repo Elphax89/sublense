@@ -13,10 +13,10 @@
         <item name="android:textColorSecondary">@color/text_dim</item>
     </style>
 
-    <!-- Für die Overlay-Fenster (Service-Kontext) -->
+    <!-- For the overlay windows (service context) -->
     <style name="Theme.SubLens.Overlay" />
 
-    <!-- Basis für die SubLens.* Stile -->
+    <!-- Base for the SubLens.* styles -->
     <style name="SubLens" />
 
     <style name="SubLens.Card">

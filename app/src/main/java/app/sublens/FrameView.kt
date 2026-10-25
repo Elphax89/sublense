@@ -9,8 +9,8 @@ import android.graphics.RectF
 import android.view.View
 
 /**
- * Der sichtbare Rahmen: dünne Linie + kräftige Ecken. Innen komplett durchsichtig,
- * damit vom Video nichts verdeckt wird.
+ * The visible frame: thin line + bold corners. Fully transparent inside,
+ * so nothing of the video is covered.
  */
 class FrameView(context: Context) : View(context) {
 
@@ -26,7 +26,7 @@ class FrameView(context: Context) : View(context) {
         alpha = 130
     }
 
-    /** Dunkle Kontur unter den Ecken, damit sie auch auf hellem Video sichtbar bleiben. */
+    /** Dark outline under the corners so they stay visible on bright video. */
     private val shadowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
         strokeWidth = 7f * density
@@ -47,7 +47,7 @@ class FrameView(context: Context) : View(context) {
     private val rect = RectF()
     private val path = Path()
 
-    /** Farbe des Rahmens (Einstellung „Farbe der Linse“). */
+    /** Frame colour (setting "Lens colour"). */
     fun setColor(color: Int) {
         accent = color
         linePaint.color = color
@@ -56,7 +56,7 @@ class FrameView(context: Context) : View(context) {
         invalidate()
     }
 
-    /** Leuchtet stärker, sobald im Rahmen Text erkannt wird. */
+    /** Glows brighter as soon as text is recognised inside the frame. */
     var active: Boolean = false
         set(value) {
             if (field != value) {
@@ -65,7 +65,7 @@ class FrameView(context: Context) : View(context) {
             }
         }
 
-    /** Dieser Rand wird bei der Texterkennung ausgespart, damit der Rahmen selbst nicht stört. */
+    /** This margin is left out of text recognition so the frame itself doesn't interfere. */
     val insetPx: Int get() = (8f * density).toInt()
 
     override fun onDraw(canvas: Canvas) {
@@ -90,22 +90,22 @@ class FrameView(context: Context) : View(context) {
         val rad = radius
         val len = bracketLength.coerceAtMost(minOf(r.width(), r.height()) / 2f)
         path.reset()
-        // oben links
+        // top left
         path.moveTo(l, t + len)
         path.lineTo(l, t + rad)
         path.arcTo(l, t, l + 2 * rad, t + 2 * rad, 180f, 90f, false)
         path.lineTo(l + len, t)
-        // oben rechts
+        // top right
         path.moveTo(rt - len, t)
         path.lineTo(rt - rad, t)
         path.arcTo(rt - 2 * rad, t, rt, t + 2 * rad, 270f, 90f, false)
         path.lineTo(rt, t + len)
-        // unten rechts
+        // bottom right
         path.moveTo(rt, b - len)
         path.lineTo(rt, b - rad)
         path.arcTo(rt - 2 * rad, b - 2 * rad, rt, b, 0f, 90f, false)
         path.lineTo(rt - len, b)
-        // unten links
+        // bottom left
         path.moveTo(l + len, b)
         path.lineTo(l + rad, b)
         path.arcTo(l, b - 2 * rad, l + 2 * rad, b, 90f, 90f, false)

@@ -16,7 +16,7 @@
         android:paddingEnd="18dp"
         android:paddingBottom="28dp">
 
-        <!-- Kopf -->
+        <!-- Header -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -53,7 +53,7 @@
             </LinearLayout>
         </LinearLayout>
 
-        <!-- Berechtigungen -->
+        <!-- Permissions -->
         <LinearLayout style="@style/SubLens.Card"
             android:layout_marginTop="22dp">
 
@@ -116,7 +116,7 @@
             style="@style/SubLens.Note"
             android:text="@string/start_hint" />
 
-        <!-- Sprache -->
+        <!-- Language -->
         <LinearLayout style="@style/SubLens.Card"
             android:layout_marginTop="20dp">
 
@@ -175,7 +175,7 @@
                 android:text="@string/language_note" />
         </LinearLayout>
 
-        <!-- Anzeige -->
+        <!-- Display -->
         <LinearLayout style="@style/SubLens.Card">
 
             <TextView
@@ -272,7 +272,7 @@
                 android:textSize="15sp" />
         </LinearLayout>
 
-        <!-- Antwortzeile -->
+        <!-- Reply line -->
         <LinearLayout style="@style/SubLens.Card">
 
             <TextView
@@ -302,7 +302,7 @@
                 android:text="@string/reply_note" />
         </LinearLayout>
 
-        <!-- Aktualisierung -->
+        <!-- Refresh -->
         <LinearLayout style="@style/SubLens.Card">
 
             <TextView
@@ -339,7 +339,7 @@
             </RadioGroup>
         </LinearLayout>
 
-        <!-- Sprachpakete -->
+        <!-- Language packs -->
         <LinearLayout style="@style/SubLens.Card">
 
             <TextView
@@ -367,7 +367,7 @@
                 android:layout_marginTop="6dp"
                 android:orientation="vertical" />
 
-            <!-- Beliebiges Sprachpaket von Hand laden -->
+            <!-- Download any language pack by hand -->
             <TextView
                 style="@style/SubLens.Caption"
                 android:layout_marginTop="12dp"
@@ -399,7 +399,7 @@
             android:gravity="center_horizontal"
             android:text="@string/footer" />
 
-        <!-- Updates: großer Knopf, wird zu "Neue Version … installieren" -->
+        <!-- Updates: big button, turns into "New version … install" -->
         <Button
             android:id="@+id/btn_update"
             style="@style/SubLens.ButtonPrimary"

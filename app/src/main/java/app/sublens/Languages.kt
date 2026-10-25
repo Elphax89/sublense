@@ -3,7 +3,7 @@ package app.sublens
 import com.google.mlkit.nl.translate.TranslateLanguage
 import java.util.Locale
 
-/** Schriftsysteme, die die Texterkennung (ML Kit) lesen kann. */
+/** Scripts that text recognition (ML Kit) can read. */
 enum class Script(val key: String, val labelRes: Int) {
     LATIN("latin", R.string.script_latin),
     CHINESE("chinese", R.string.script_chinese),
@@ -11,7 +11,7 @@ enum class Script(val key: String, val labelRes: Int) {
     KOREAN("korean", R.string.script_korean),
     DEVANAGARI("devanagari", R.string.script_devanagari);
 
-    /** Chinesisch und Japanisch trennen Wörter nicht mit Leerzeichen. */
+    /** Chinese and Japanese don't separate words with spaces. */
     val joinsWithoutSpace: Boolean get() = this == CHINESE || this == JAPANESE
 
     companion object {
@@ -22,26 +22,26 @@ enum class Script(val key: String, val labelRes: Int) {
 object Languages {
     const val AUTO = "auto"
 
-    /** Anzeigename für "Automatisch erkennen" in der Handysprache – wird beim Start aus den Ressourcen gesetzt. */
+    /** Display name for "Detect automatically" in the phone's language – set from resources at startup. */
     @Volatile
     var autoLabel = "Auto"
 
-    /** Sprachen, deren Schrift die Texterkennung nicht lesen kann – nur als Zielsprache nutzbar. */
+    /** Languages whose script text recognition can't read – usable as target language only. */
     private val NO_OCR = setOf(
         "ar", "be", "bg", "bn", "el", "fa", "gu", "he", "ka",
         "kn", "mk", "ru", "ta", "te", "th", "uk", "ur",
     )
 
-    /** Alle Sprachen, in die übersetzt werden kann, alphabetisch nach Anzeigename. */
+    /** All languages that can be translated into, sorted by display name. */
     fun targets(): List<String> =
         TranslateLanguage.getAllLanguages().sortedBy { displayName(it).lowercase(Locale.getDefault()) }
 
-    /** Quellsprachen: Auto + alles, was die Texterkennung lesen kann. */
+    /** Source languages: Auto + everything text recognition can read. */
     fun sources(): List<String> = listOf(AUTO) + targets().filter { it !in NO_OCR }
 
     fun displayName(tag: String): String {
         if (tag == AUTO) return autoLabel
-        // Chinesisch wird traditionell angezeigt (siehe ChineseScript).
+        // Chinese is shown in traditional characters (see ChineseScript).
         if (tag == "zh") {
             val n = Locale.forLanguageTag("zh-Hant").getDisplayName(Locale.getDefault())
             if (n.isNotBlank()) return n.replaceFirstChar { it.titlecase(Locale.getDefault()) }
@@ -53,7 +53,7 @@ object Languages {
 
     fun shortCode(tag: String): String = if (tag == AUTO) "AUTO" else tag.uppercase(Locale.ROOT)
 
-    /** Welche Texterkennung zu einer fest gewählten Quellsprache passt (null = Auto). */
+    /** Which text recognizer fits a fixed source language (null = Auto). */
     fun scriptFor(tag: String): Script? = when (tag) {
         AUTO -> null
         "zh" -> Script.CHINESE
@@ -63,11 +63,11 @@ object Languages {
         else -> Script.LATIN
     }
 
-    /** Handysprache, falls übersetzbar, sonst Englisch. */
+    /** Phone language if translatable, otherwise English. */
     fun defaultTarget(): String =
         TranslateLanguage.fromLanguageTag(Locale.getDefault().language) ?: TranslateLanguage.ENGLISH
 
-    /** Ergebnis der Spracherkennung in eine übersetzbare Sprache umwandeln (null = unbekannt). */
+    /** Map a language-identification result to a translatable language (null = unknown). */
     fun normalizeDetected(tag: String?): String? {
         if (tag == null || tag == "und" || tag.contains("-Latn", ignoreCase = true)) return null
         return TranslateLanguage.fromLanguageTag(tag.substringBefore('-'))

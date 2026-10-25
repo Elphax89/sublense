@@ -29,10 +29,10 @@ import kotlin.math.max
 import kotlin.math.min
 
 /**
- * Bild → Text (OCR) → Sprache erkennen → übersetzen. Alles auf dem Gerät.
- * Jeder Textblock wird einzeln übersetzt und mit Position, Hintergrund- und Schriftfarbe
- * geliefert, damit die Übersetzung direkt in der Linse über dem Original liegen kann.
- * Wird ausschließlich vom Main-Thread bedient; ML Kit rechnet im Hintergrund.
+ * Image → text (OCR) → detect language → translate. All on the device.
+ * Each text block is translated separately and delivered with position, background and text colour,
+ * so the translation can sit right over the original in the lens.
+ * Used from the main thread only; ML Kit computes in the background.
  */
 class TextPipeline(
     context: Context,
@@ -40,17 +40,17 @@ class TextPipeline(
     private val listener: Listener,
 ) {
     interface Listener {
-        /** Ein Ergebnis pro Bild. [items] sind in Koordinaten des Ausschnitts [crop]. */
+        /** One result per frame. [items] are in coordinates of the crop [crop]. */
         fun onResult(items: List<LensItem>, crop: Rect, sourceLang: String?)
         fun onTextSeen()
         fun onNoText()
 
-        /** Außerhalb des neu gelesenen Bereichs passt die Anzeige nicht mehr – bitte alles neu lesen. */
+        /** Outside the re-read area the display no longer matches – please re-read everything. */
         fun onStale()
         fun onStatus(message: String)
     }
 
-    /** Ein erkannter Textblock. */
+    /** A recognised text block. */
     private class Block(
         val text: String,
         val rect: Rect,
@@ -59,17 +59,17 @@ class TextPipeline(
         val foreground: Int,
     )
 
-    /** [region]: nur dieser Teil des Ausschnitts wurde neu gelesen (Rest bleibt wie angezeigt). */
+    /** [region]: only this part of the crop was re-read (the rest stays as displayed). */
     private class Frame(val blocks: List<Block>, val crop: Rect, val combined: String, val region: Rect? = null)
 
-    /** Zuletzt gelieferte Blöcke und Sprache – für Teil-Aktualisierungen. */
+    /** Last delivered blocks and language – for partial updates. */
     private var lastDelivered: List<LensItem> = emptyList()
     private var lastDeliveredCrop: Rect? = null
     private var lastSource: String? = null
 
     private val appContext = context.applicationContext
 
-    /** Wird vom Aufnahme-Thread gelesen: solange true, wird kein neues Bild geschickt. */
+    /** Read by the capture thread: while true, no new frame is sent. */
     @Volatile
     var busy = false
 
@@ -93,17 +93,17 @@ class TextPipeline(
     private var translating = false
     private var pending: Frame? = null
 
-    /** Zuletzt angezeigte Übersetzungen – taucht eine davon im Bild auf, sieht die Kamera unser eigenes Overlay. */
+    /** Last shown translations – if one of them shows up in the frame, the capture saw our own overlay. */
     private var shownTranslations: Set<String> = emptySet()
 
-    /** Steigt bei jeder Einstellungsänderung – veraltete Ergebnisse werden verworfen. */
+    /** Increases with every settings change – outdated results are discarded. */
     private var generation = 0
 
     // ---------------------------------------------------------------- OCR
 
     /**
-     * Liest [bitmap]. Ist [region] gesetzt, werden nur Blöcke darin neu übersetzt; alle anderen
-     * bleiben genau so stehen wie zuletzt (kein Zucken, wenn sich nur z. B. ein GIF bewegt).
+     * Reads [bitmap]. If [region] is set, only blocks inside it are re-translated; all others
+     * stay exactly as before (no twitching when only, say, a GIF moves).
      */
     fun process(bitmap: Bitmap, crop: Rect, region: Rect? = null, drawn: List<Rect> = emptyList()) {
         if (closed) {
@@ -144,22 +144,22 @@ class TextPipeline(
     }
 
     /**
-     * Zeilen eines Blocks werden zu einem Satz verbunden, Blöcke (Absätze, Sprecher,
-     * Chat-Nachrichten) bleiben getrennt. Zeilen ohne Buchstaben (Uhrzeiten, Symbole) fliegen raus.
+     * Lines of a block are joined into one sentence; blocks (paragraphs, speakers,
+     * chat messages) stay separate. Lines without letters (times, symbols) are dropped.
      */
     private fun buildFrame(text: Text, script: Script, bitmap: Bitmap, crop: Rect): Frame {
         val separator = if (script.joinsWithoutSpace) "" else " "
         val blocks = ArrayList<Block>()
         for (block in text.textBlocks) {
-            // Ein ML-Kit-Block kann Name (farbig, andere Größe), Zitat und Nachricht enthalten.
-            // Zeilen nur zusammenfassen, wenn Schriftgröße, Farben und Abstand zusammenpassen –
-            // sonst bekommt jeder Teil seine eigene Box mit eigener Schriftgröße.
+            // An ML Kit block can contain a name (coloured, different size), a quote and the message.
+            // Only join lines when font size, colours and spacing match –
+            // otherwise each part gets its own box with its own font size.
             var group = ArrayList<LineInfo>()
             for (line in block.lines) {
                 if (line.text.count { ch -> ch.isLetter() } < 2) continue
                 val box = line.boundingBox ?: continue
                 if (box.isEmpty) continue
-                // Vom Linsenrand angeschnittene Zeile: nur halb lesbar – weglassen.
+                // Line cut off by the lens edge: only half readable – skip it.
                 if (box.top <= 1 || box.bottom >= bitmap.height - 2) continue
                 val (bg, fg) = sampleColors(bitmap, box)
                 val info = LineInfo(line.text.trim(), Rect(box), bg, fg)
@@ -202,15 +202,15 @@ class TextPipeline(
         if (e is MlKitException && e.errorCode == MlKitException.UNAVAILABLE) {
             listener.onStatus(appContext.getString(R.string.status_ocr_model))
         } else {
-            Log.w(TAG, "Texterkennung fehlgeschlagen", e)
+            Log.w(TAG, "Text recognition failed", e)
         }
     }
 
-    // ---------------------------------------------------------------- Farben
+    // ---------------------------------------------------------------- Colours
 
     /**
-     * Hintergrund = häufigste Farbe direkt um den Text herum (Median des Randes),
-     * Schrift = die Pixel im Block, die sich am stärksten vom Hintergrund abheben.
+     * Background = most common colour right around the text (median of the ring),
+     * text = the pixels in the block that stand out most from the background.
      */
     private fun sampleColors(bitmap: Bitmap, r: Rect): Pair<Int, Int> {
         val w = bitmap.width
@@ -285,18 +285,18 @@ class TextPipeline(
     private fun luminance(c: Int): Float =
         (0.299f * Color.red(c) + 0.587f * Color.green(c) + 0.114f * Color.blue(c)) / 255f
 
-    // ---------------------------------------------------------------- Text → Übersetzung
+    // ---------------------------------------------------------------- Text → translation
 
     /**
-     * Nur Blöcke im neu gelesenen Bereich behalten (die anderen zeigen gerade unsere eigene Übersetzung).
-     * Passt das, was außerhalb zu sehen ist, nicht mehr zu dem, was wir dort anzeigen (z. B. weil
-     * gescrollt wurde), wird das Bild verworfen und eine komplette Neuaufnahme angefordert (null).
+     * Keep only blocks in the re-read area (the others currently show our own translation).
+     * If what is visible outside no longer matches what we show there (e.g. because
+     * the user scrolled), the frame is dropped and a full re-read is requested (null).
      */
     private fun restrict(frame: Frame, region: Rect?, drawn: List<Rect>): Frame? {
         if (region == null || lastDeliveredCrop != frame.crop || lastDelivered.isEmpty()) return frame
         val inside = frame.blocks.filter { Rect.intersects(it.rect, region) }
-        // Unter unseren eigenen Übersetzungen kann man nichts prüfen (fremde Schrift, die die
-        // Erkennung oft gar nicht lesen kann) – nur Stellen, an denen das Original sichtbar ist.
+        // Nothing can be checked under our own translations (foreign script that recognition
+        // often can't read at all) – only places where the original is visible.
         val outside = frame.blocks.filter { b ->
             !Rect.intersects(b.rect, region) && drawn.none { d -> Rect.intersects(Rect(d).apply { inset(-2, -2) }, b.rect) }
         }
@@ -321,7 +321,7 @@ class TextPipeline(
             }
             if (!ok) bad++
         }
-        // Sichtbares Original, das nicht (mehr) dort steht, wo wir es kennen → es hat sich etwas verschoben.
+        // Visible original that isn't (any more) where we know it → something moved.
         return bad >= 2 || (bad == 1 && counted == 1)
     }
 
@@ -332,7 +332,7 @@ class TextPipeline(
         return fuzzySame(a, b)
     }
 
-    /** Toleranter Textvergleich (für animierte Emojis, die OCR mal als Buchstaben liest, mal nicht). */
+    /** Tolerant text comparison (for animated emojis that OCR sometimes reads as letters, sometimes not). */
     private fun fuzzySame(a: String, b: String): Boolean {
         if (isSameText(a, b)) return true
         val longer = max(a.length, b.length)
@@ -343,8 +343,8 @@ class TextPipeline(
     }
 
     /**
-     * Steht ein Block praktisch unverändert an derselben Stelle, wird exakt die alte Anzeige übernommen –
-     * so springen weder Schriftgröße noch Übersetzung, nur weil die Erkennung leicht schwankt.
+     * If a block sits practically unchanged in the same place, exactly the old display is kept –
+     * so neither font size nor translation jumps just because recognition varies slightly.
      */
     private fun stabilize(fresh: List<LensItem>, crop: Rect): List<LensItem> {
         if (lastDeliveredCrop != crop || lastDelivered.isEmpty()) return fresh
@@ -359,7 +359,7 @@ class TextPipeline(
         }
     }
 
-    /** Alte Blöcke außerhalb des neu gelesenen Bereichs. */
+    /** Old blocks outside the re-read area. */
     private fun keptOutside(frame: Frame): List<LensItem> {
         val region = frame.region ?: return emptyList()
         if (lastDeliveredCrop != frame.crop) return emptyList()
@@ -368,7 +368,7 @@ class TextPipeline(
 
     private fun onText(frame: Frame) {
         if (frame.blocks.isEmpty() && frame.region != null) {
-            // Im bewegten Bereich steht kein Text (mehr) – Rest unverändert lassen.
+            // No text (any more) in the moving area – leave the rest unchanged.
             val kept = keptOutside(frame)
             if (kept.size != lastDelivered.size) publish(kept, frame.crop, lastSource)
             return
@@ -378,7 +378,7 @@ class TextPipeline(
             listener.onNoText()
             return
         }
-        // Eigene Übersetzung im Bild? Dann war das Overlay beim Aufnehmen noch sichtbar – Bild verwerfen.
+        // Our own translation in the frame? Then the overlay was still visible during capture – drop the frame.
         if (prefs.lensMode && shownTranslations.isNotEmpty() && frame.blocks.any { normalize(it.text) in shownTranslations }) return
         listener.onTextSeen()
 
@@ -389,7 +389,7 @@ class TextPipeline(
         last = frame
 
         if (translating) {
-            pending = frame // nur das neueste Bild zählt
+            pending = frame // only the newest frame counts
             return
         }
         detectAndTranslate(frame)
@@ -426,7 +426,7 @@ class TextPipeline(
                 val sticky = stickyLang
                 val lang = when {
                     detected == null -> sticky ?: TranslateLanguage.ENGLISH
-                    // Sehr kurze Schnipsel werden oft falsch erkannt – dann bei der bisherigen Sprache bleiben.
+                    // Very short snippets are often misdetected – stay with the previous language then.
                     raw.length < 12 && sticky != null -> sticky
                     else -> detected.also { stickyLang = it }
                 }
@@ -456,7 +456,7 @@ class TextPipeline(
             return
         }
         if (pair in downloadingPairs) {
-            // Paket lädt noch (aus einem früheren Versuch) – beim nächsten Bild erneut probieren.
+            // Pack is still downloading (from an earlier attempt) – try again with the next frame.
             last = null
             finish(gen)
             return
@@ -481,15 +481,15 @@ class TextPipeline(
             }
             .addOnFailureListener { e ->
                 downloadingPairs -= pair
-                Log.w(TAG, "Sprachpaket-Download fehlgeschlagen", e)
+                Log.w(TAG, "Language pack download failed", e)
                 if (closed || gen != generation) return@addOnFailureListener
                 listener.onStatus(appContext.getString(R.string.status_download_failed))
-                last = null // nächster Versuch beim nächsten Bild
+                last = null // try again with the next frame
                 finish(gen)
             }
     }
 
-    /** Übersetzt alle Blöcke (parallel, aus dem Cache wo möglich) und liefert sie gemeinsam. */
+    /** Translates all blocks (in parallel, from the cache where possible) and delivers them together. */
     private fun runTranslation(translator: Translator, pair: String, frame: Frame, source: String, gen: Int) {
         val texts = frame.blocks.map { it.text }
         val results = arrayOfNulls<String>(texts.size)
@@ -513,8 +513,8 @@ class TextPipeline(
                     done()
                 }
                 .addOnFailureListener { e ->
-                    Log.w(TAG, "Übersetzung fehlgeschlagen", e)
-                    results[i] = raw // lieber Original zeigen als nichts
+                    Log.w(TAG, "Translation failed", e)
+                    results[i] = raw // better show the original than nothing
                     done()
                 }
         }
@@ -541,7 +541,7 @@ class TextPipeline(
     }
 
     private fun publish(unsorted: List<LensItem>, crop: Rect, source: String?) {
-        // Feste Reihenfolge → jede Box bleibt in "ihrem" Fenster, nichts wird umgehängt.
+        // Fixed order → each box stays in "its" window, nothing gets reassigned.
         val items = unsorted.sortedWith(compareBy({ it.rect.top }, { it.rect.left }))
         lastDelivered = items
         lastDeliveredCrop = Rect(crop)
@@ -565,7 +565,7 @@ class TextPipeline(
     private fun translatorFor(source: String, target: String): Translator {
         val pair = "$source>$target"
         translators[pair]?.let { return it }
-        // Nur wenige Übersetzer gleichzeitig offen halten (jeder belegt Speicher).
+        // Keep only a few translators open at once (each one uses memory).
         while (translators.size >= MAX_TRANSLATORS) {
             val oldest = translators.keys.first()
             if (oldest in downloadingPairs) break
@@ -579,9 +579,9 @@ class TextPipeline(
         return Translation.getClient(options).also { translators[pair] = it }
     }
 
-    // ---------------------------------------------------------------- Hilfen
+    // ---------------------------------------------------------------- Helpers
 
-    /** Einstellungen geändert: nächsten Text sofort neu übersetzen. */
+    /** Settings changed: re-translate the next text right away. */
     fun reset() {
         generation++
         translating = false
@@ -616,7 +616,7 @@ class TextPipeline(
 
     private fun normalize(s: String): String = s.lowercase().filter { it.isLetterOrDigit() }
 
-    /** OCR schwankt leicht von Bild zu Bild – kleine Abweichungen gelten als "gleicher Text". */
+    /** OCR varies slightly from frame to frame – small differences count as "same text". */
     private fun isSameText(a: String, b: String): Boolean {
         if (a == b) return true
         if (a.isEmpty() || b.isEmpty()) return false

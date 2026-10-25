@@ -5,10 +5,10 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <!-- Nur für den einmaligen Download der Sprachpakete -->
+    <!-- Only for the one-time download of language packs -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <!-- Updates aus der App heraus installieren (Android fragt jedes Mal nach) -->
+    <!-- Install updates from within the app (Android asks every time) -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <application
@@ -19,7 +19,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.SubLens">
 
-        <!-- Lateinische Texterkennung schon bei der Installation über Play-Dienste bereitstellen -->
+        <!-- Provide Latin text recognition via Play services right at install time -->
         <meta-data
             android:name="com.google.mlkit.vision.DEPENDENCIES"
             android:value="ocr" />

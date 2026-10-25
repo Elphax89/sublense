@@ -34,8 +34,8 @@ import kotlin.math.abs
 import kotlin.math.max
 
 /**
- * Vordergrund-Dienst: hält die Bildschirmfreigabe, zeigt das Overlay und
- * schickt in festen Abständen den Rahmen-Ausschnitt an die Texterkennung.
+ * Foreground service: holds the screen capture, shows the overlay and
+ * sends the lens area to text recognition at regular intervals.
  */
 class OverlayService : Service(), OverlayController.Callbacks, TextPipeline.Listener {
 
@@ -54,30 +54,29 @@ class OverlayService : Service(), OverlayController.Callbacks, TextPipeline.List
     @Volatile
     private var cropRect: Rect? = null
 
-    /** Sichtbare eigene Übersetzungen in der Linse (Ausschnitt-Koordinaten). Leer = Linse zeigt das Original. */
+    /** Our own visible translations in the lens (crop coordinates). Empty = the lens shows the original. */
     @Volatile
     private var lensMask: List<Rect> = emptyList()
 
-    /** Läuft gerade eine Aufnahme mit ausgeblendeter Linse? */
+    /** Is a capture with the lens hidden running right now? */
     @Volatile
     private var hiddenCapture = false
 
     @Volatile
     private var lensMode = true
 
-    // nur auf dem Aufnahme-Thread
+    // capture thread only
     private var baseline: IntArray? = null
-    /** Vorheriges Raster (von Takt zu Takt) und "Unruhe" je Zelle: hoch = dort läuft eine Animation. */
+    /** Previous fingerprint (tick to tick) and "restlessness" per cell: high = an animation runs there. */
     private var prevSig: IntArray? = null
     private var heat: FloatArray? = null
-    /** Bis wann eine Zelle als "animiert" gilt (auch wenn die Animation kurz pausiert). */
+    /** Until when a cell counts as "animated" (even if the animation pauses briefly). */
     private var animUntil: LongArray? = null
-    /** Raster vom vorigen Takt – um zu prüfen, ob sich das Bild beruhigt hat. */
-    /** Seit der letzten Aufnahme hat sich das ganze Bild bewegt (gescrollt, neue Nachricht). */
+    /** Since the last capture the whole picture moved (scrolled, new message). */
     private var movedAll = false
     private var videoHintShown = false
 
-    /** Komplette Neuaufnahme angefordert (Anzeige passt nicht mehr zum Bild). */
+    /** Full re-read requested (display no longer matches the picture). */
     @Volatile
     private var fullRequested = false
     private var lastStaleAt = 0L
@@ -100,11 +99,11 @@ class OverlayService : Service(), OverlayController.Callbacks, TextPipeline.List
         when (intent?.action) {
             ACTION_STOP -> shutdown()
             ACTION_START -> {
-                // Pflicht ab Android 14: erst Vordergrund mit Typ "mediaProjection", dann Freigabe holen.
+                // Required from Android 14: go foreground with type "mediaProjection" first, then get the capture.
                 try {
                     startInForeground()
                 } catch (e: Exception) {
-                    Log.e(TAG, "Vordergrund-Start fehlgeschlagen", e)
+                    Log.e(TAG, "Starting foreground service failed", e)
                     shutdown()
                     return START_NOT_STICKY
                 }
@@ -118,7 +117,7 @@ class OverlayService : Service(), OverlayController.Callbacks, TextPipeline.List
                 try {
                     begin(code, data)
                 } catch (e: Exception) {
-                    Log.e(TAG, "Start fehlgeschlagen", e)
+                    Log.e(TAG, "Start failed", e)
                     Toast.makeText(this, R.string.toast_start_failed, Toast.LENGTH_LONG).show()
                     shutdown()
                 }
@@ -163,7 +162,7 @@ class OverlayService : Service(), OverlayController.Callbacks, TextPipeline.List
         cap.handler.postDelayed(tick, FIRST_TICK_DELAY_MS)
     }
 
-    /** Kontext für Overlay-Fenster (ab Android 11 ein eigener Fenster-Kontext). */
+    /** Context for overlay windows (a dedicated window context from Android 11). */
     private fun uiContext(display: Display): Context {
         val base: Context = if (Build.VERSION.SDK_INT >= 30) {
             createDisplayContext(display)
@@ -189,7 +188,7 @@ class OverlayService : Service(), OverlayController.Callbacks, TextPipeline.List
         dm.registerDisplayListener(listener, main)
     }
 
-    /** Gedreht oder Auflösung geändert: Overlay neu anordnen, Aufnahme anpassen. */
+    /** Rotated or resolution changed: rearrange the overlay, adapt the capture. */
     private fun onScreenChanged() {
         val display = displayManager?.getDisplay(Display.DEFAULT_DISPLAY) ?: return
         val size = realSize(display)
@@ -198,12 +197,12 @@ class OverlayService : Service(), OverlayController.Callbacks, TextPipeline.List
     }
 
     /**
-     * Läuft auf dem Aufnahme-Thread.
+     * Runs on the capture thread.
      *
-     * Liegen Übersetzungen in der Linse, verdecken sie das Original. Dann wird nur ein grober
-     * Fingerabdruck des Bildes verglichen (ohne die eigenen Übersetzungen). Ändert sich etwas –
-     * neue Nachricht, gescrollt, neuer Untertitel – wird die Linse für ein, zwei Bilder ausgeblendet
-     * und genau dann aufgenommen. Bleibt alles ruhig, blinkt nichts.
+     * When translations sit in the lens, they cover the original. Then only a coarse
+     * fingerprint of the picture is compared (without our own translations). When something changes –
+     * new message, scrolled, new subtitle – the affected part of the lens is hidden for a frame or two
+     * and captured right then. If everything stays still, nothing flickers.
      */
     private val tick: Runnable = object : Runnable {
         override fun run() {
@@ -215,7 +214,7 @@ class OverlayService : Service(), OverlayController.Callbacks, TextPipeline.List
             if (rect != null && !pipe.busy && !hiddenCapture) {
                 val mask = lensMask
                 if (lensMode && mask.isNotEmpty()) {
-                    // Kein neues Bild seit dem letzten Takt = Bildschirm steht still → letztes Raster gilt weiter.
+                    // No new frame since the last tick = the screen is still → the last fingerprint stays valid.
                     val sig = cap.signature(rect, mask) ?: prevSig
                     val now = SystemClock.uptimeMillis()
                     val gapOk = now - lastHiddenAt >= max(interval, MIN_HIDDEN_GAP_MS)
@@ -231,10 +230,10 @@ class OverlayService : Service(), OverlayController.Callbacks, TextPipeline.List
                         if (base == null || base.size != sig.size) {
                             baseline = sig
                         } else if (gapOk) {
-                            // Im Chat-Modus zählen Stellen, an denen ständig etwas animiert (GIFs, Sticker,
-                            // animierte Emojis und Profilbilder), nicht als Änderung.
-                            // Außerdem erst lesen, wenn sich das Bild beruhigt hat (fertig gescrollt,
-                            // Nachricht fertig eingeblendet) – Animationen beruhigen sich nie und lösen nichts aus.
+                            // In chat mode, places that animate all the time (GIFs, stickers,
+                            // animated emojis and profile pictures) don't count as a change.
+                            // Also only read once the picture has settled (done scrolling,
+                            // message fully shown) – animations never settle and trigger nothing.
                             val video = prefs.videoMode
                             val ignore = if (video) null else animatedCells()
                             val settleRef = if (video) null else previousTick
@@ -265,10 +264,10 @@ class OverlayService : Service(), OverlayController.Callbacks, TextPipeline.List
         }
     }
 
-    /** Linse ausblenden, warten bis das Bild ohne sie gezeichnet ist, aufnehmen, wieder einblenden. */
+    /** Hide the lens, wait until the screen is drawn without it, capture, show it again. */
     /**
-     * Lernt, wo sich das Bild von Takt zu Takt ständig ändert (Animationen). Bewegt sich fast alles
-     * gleichzeitig (Scrollen), ist das keine Animation, sondern eine echte Änderung.
+     * Learns where the picture keeps changing from tick to tick (animations). If almost everything
+     * moves at once (scrolling), that is not an animation but a real change.
      */
     private fun learnMotion(sig: IntArray) {
         val prev = prevSig
@@ -295,7 +294,7 @@ class OverlayService : Service(), OverlayController.Callbacks, TextPipeline.List
             h[i] *= HEAT_DECAY
             if (!global && prev[i] >= 0 && sig[i] >= 0 && abs(prev[i] - sig[i]) > ScreenCapturer.CELL_THRESHOLD) h[i] += 1f
             if (h[i] >= HEAT_ANIMATED) {
-                // Animation: Zelle und Nachbarn eine Weile ignorieren (GIF-Bilder ändern nicht jede Zelle jedes Mal).
+                // Animation: ignore the cell and its neighbours for a while (GIF frames don't change every cell every time).
                 val cx = i % cols
                 val cy = i / cols
                 for (dy in -ANIM_SPREAD..ANIM_SPREAD) for (dx in -ANIM_SPREAD..ANIM_SPREAD) {
@@ -313,7 +312,7 @@ class OverlayService : Service(), OverlayController.Callbacks, TextPipeline.List
         return BooleanArray(until.size) { until[it] > now }
     }
 
-    /** Im Chat-Modus über einem Video: einmal darauf hinweisen, dass der Video-Knopf Untertitel mitlaufen lässt. */
+    /** Chat mode over a video: point out once that the video button lets subtitles keep up. */
     private fun maybeHintVideo() {
         if (videoHintShown) return
         val anim = animatedCells() ?: return
@@ -325,9 +324,9 @@ class OverlayService : Service(), OverlayController.Callbacks, TextPipeline.List
     }
 
     /**
-     * Bewegt sich nur ein Teil (GIF, Video), wird nur dort neu gelesen. Der Bereich wird um alle
-     * Übersetzungen erweitert, die ihn berühren, damit keine halb verdeckt bleibt.
-     * null = ganze Linse neu lesen (z. B. gescrollt).
+     * If only part moves (GIF, video), only that part is re-read. The area is extended by all
+     * translations touching it so none stays half covered.
+     * null = re-read the whole lens (e.g. scrolled).
      */
     private fun partialRegion(changed: Rect, drawn: List<Rect>, crop: Rect): Rect? {
         val r = Rect(changed)
@@ -357,7 +356,7 @@ class OverlayService : Service(), OverlayController.Callbacks, TextPipeline.List
                 return@post
             }
             val chor = Choreographer.getInstance()
-            // Bild 1: Fenster zeichnen sich leer, Bild 2: Bildschirm zusammengesetzt, Bild 3: Sicherheitsreserve
+            // Frame 1: windows draw empty, frame 2: screen composed, frame 3: safety margin
             chor.postFrameCallback {
                 chor.postFrameCallback {
                     chor.postFrameCallback {
@@ -417,7 +416,7 @@ class OverlayService : Service(), OverlayController.Callbacks, TextPipeline.List
         }
     }
 
-    /** In diese Sprache wird die eigene Antwort übersetzt. */
+    /** The language your own reply is translated into. */
     private fun replyLanguage(): String = when {
         prefs.replyLang != Languages.AUTO -> prefs.replyLang
         prefs.sourceLang != Languages.AUTO -> prefs.sourceLang
@@ -595,19 +594,19 @@ class OverlayService : Service(), OverlayController.Callbacks, TextPipeline.List
         private const val FIRST_TICK_DELAY_MS = 600L
         private const val IDLE_AFTER_MS = 2500L
         private const val MIN_HIDDEN_GAP_MS = 600L
-        /** Bewegt sich mehr als so viel Prozent der Linse, wird alles neu gelesen. */
+        /** If more than this percentage of the lens moves, everything is re-read. */
         private const val PARTIAL_MAX_PERCENT = 40L
-        /** … oder ein Streifen höher als so viel Prozent (z. B. alle Profilbilder beim Scrollen). */
+        /** … or a strip taller than this percentage (e.g. all profile pictures while scrolling). */
         private const val PARTIAL_MAX_HEIGHT_PERCENT = 50
-        /** Ändern sich so viele Prozent der Zellen auf einmal, wurde gescrollt. */
+        /** If this percentage of cells changes at once, the user scrolled. */
         private const val GLOBAL_MOVE_PERCENT = 25
         private const val HEAT_DECAY = 0.85f
-        /** Zweimal kurz hintereinander verändert = Animation. */
+        /** Changed twice in quick succession = animation. */
         private const val HEAT_ANIMATED = 1.5f
         private const val VIDEO_HINT_PERCENT = 30
-        /** Animierte Stellen bleiben so lange ignoriert, auch wenn sie kurz pausieren. */
+        /** Animated places stay ignored this long, even if they pause briefly. */
         private const val ANIM_HOLD_MS = 10_000L
-        /** … samt so vielen Nachbarzellen rundherum. */
+        /** … including this many neighbouring cells around them. */
         private const val ANIM_SPREAD = 1
         private const val STALE_MIN_GAP_MS = 3000L
 
@@ -615,7 +614,7 @@ class OverlayService : Service(), OverlayController.Callbacks, TextPipeline.List
         var isRunning = false
             private set
 
-        /** Wird auf dem Main-Thread aufgerufen, sobald der Dienst startet oder endet. */
+        /** Called on the main thread whenever the service starts or stops. */
         var stateListener: ((Boolean) -> Unit)? = null
 
         private fun notifyState() {

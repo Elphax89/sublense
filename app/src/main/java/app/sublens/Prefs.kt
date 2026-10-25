@@ -3,7 +3,7 @@ package app.sublens
 import android.content.Context
 import android.content.SharedPreferences
 
-/** Alle Einstellungen an einem Ort. Änderungen wirken sofort, auch im laufenden Overlay. */
+/** All settings in one place. Changes take effect immediately, also in the running overlay. */
 class Prefs(context: Context) {
 
     val sp: SharedPreferences =
@@ -21,7 +21,7 @@ class Prefs(context: Context) {
         get() = Script.fromKey(sp.getString(K_SCRIPT, null))
         set(value) = sp.edit().putString(K_SCRIPT, value.key).apply()
 
-    /** true = Übersetzung direkt in der Linse über dem Originaltext, false = in der Leiste. */
+    /** true = translation right in the lens over the original text, false = in the bar. */
     var lensMode: Boolean
         get() = sp.getBoolean(K_LENS_MODE, true)
         set(value) = sp.edit().putBoolean(K_LENS_MODE, value).apply()
@@ -30,19 +30,19 @@ class Prefs(context: Context) {
         get() = sp.getBoolean(K_BAR_ABOVE, false)
         set(value) = sp.edit().putBoolean(K_BAR_ABOVE, value).apply()
 
-    /** Antwortzeile über statt unter der Linse. */
+    /** Reply line above instead of below the lens. */
     var composerAbove: Boolean
         get() = sp.getBoolean(K_COMPOSER_ABOVE, false)
         set(value) = sp.edit().putBoolean(K_COMPOSER_ABOVE, value).apply()
 
-    /** Farbe von Rahmen, Griffen und Verschieben-Knopf. */
+    /** Colour of the frame, handles and move button. */
     var lensColor: Int
         get() = sp.getInt(K_LENS_COLOR, LENS_COLORS[0])
         set(value) = sp.edit().putInt(K_LENS_COLOR, value).apply()
 
     /**
-     * Tauscht Von und Nach. [detected] wird als Ausgangssprache genommen, wenn "Von" automatisch ist.
-     * false, wenn das nicht geht (keine Sprache erkannt oder neue Ausgangssprache nicht lesbar).
+     * Swaps From and To. [detected] is used as the source language when "From" is automatic.
+     * false if that isn't possible (no language detected or the new source language can't be read).
      */
     fun swapLanguages(detected: String?): Boolean {
         val src = if (sourceLang == Languages.AUTO) detected ?: return false else sourceLang
@@ -53,7 +53,7 @@ class Prefs(context: Context) {
         return true
     }
 
-    /** Video-Modus: Bewegung (Video) wird laufend neu gelesen. Aus = Chat-Modus, Animationen werden ignoriert. */
+    /** Video mode: motion (video) is re-read continuously. Off = chat mode, animations are ignored. */
     var videoMode: Boolean
         get() = sp.getBoolean(K_VIDEO_MODE, false)
         set(value) = sp.edit().putBoolean(K_VIDEO_MODE, value).apply()
@@ -74,12 +74,12 @@ class Prefs(context: Context) {
         get() = sp.getBoolean(K_WIFI_ONLY, false)
         set(value) = sp.edit().putBoolean(K_WIFI_ONLY, value).apply()
 
-    /** Antwortzeile unter dem Overlay (eigene Sprache → Sprache des Chats, in die Zwischenablage). */
+    /** Reply line next to the overlay (own language → chat's language, to the clipboard). */
     var composerEnabled: Boolean
         get() = sp.getBoolean(K_COMPOSER, true)
         set(value) = sp.edit().putBoolean(K_COMPOSER, value).apply()
 
-    /** Sprache der Antwort. AUTO = wie die erkannte Sprache im Rahmen. */
+    /** Reply language. AUTO = the language detected in the frame. */
     var replyLang: String
         get() = sp.getString(K_REPLY, Languages.AUTO) ?: Languages.AUTO
         set(value) = sp.edit().putString(K_REPLY, value).apply()
@@ -88,11 +88,11 @@ class Prefs(context: Context) {
         get() = sp.getBoolean(K_ASKED_NOTIF, false)
         set(value) = sp.edit().putBoolean(K_ASKED_NOTIF, value).apply()
 
-    /** Oberkante des Rahmens als Anteil der Bildschirmhöhe, getrennt für Hoch- und Querformat. */
+    /** Top of the frame as a fraction of the screen height, separately for portrait and landscape. */
     fun frameTopFraction(landscape: Boolean): Float =
         sp.getFloat(if (landscape) K_TOP_LAND else K_TOP_PORT, if (landscape) 0.70f else 0.14f)
 
-    /** Höhe des Rahmens als Anteil der Bildschirmhöhe (mindestens 1/5). */
+    /** Height of the frame as a fraction of the screen height (at least 1/5). */
     fun frameHeightFraction(landscape: Boolean): Float =
         sp.getFloat(if (landscape) K_HEIGHT_LAND else K_HEIGHT_PORT, MIN_HEIGHT_FRACTION)
 
@@ -123,7 +123,7 @@ class Prefs(context: Context) {
         const val K_LENS_COLOR = "lens_color"
         const val K_VIDEO_MODE = "video_mode"
 
-        /** Türkis, Blau, Lila, Pink, Rot, Orange, Gelb, Grün, Weiß */
+        /** Teal, blue, purple, pink, red, orange, yellow, green, white */
         val LENS_COLORS = intArrayOf(
             0xFF5EEAD4.toInt(), 0xFF60A5FA.toInt(), 0xFFA78BFA.toInt(), 0xFFF472B6.toInt(), 0xFFF87171.toInt(),
             0xFFFB923C.toInt(), 0xFFFACC15.toInt(), 0xFF4ADE80.toInt(), 0xFFF8FAFC.toInt(),

@@ -2,7 +2,7 @@ package app.sublens
 
 import android.graphics.Rect
 
-/** Ein übersetzter Textblock, in Koordinaten des Rahmen-Ausschnitts. */
+/** A translated text block, in coordinates of the lens crop. */
 class LensItem(
     val rect: Rect,
     val original: String,
@@ -11,7 +11,7 @@ class LensItem(
     val foreground: Int,
     val lineHeightPx: Int,
 ) {
-    /** Nur Blöcke, deren Übersetzung sich vom Original unterscheidet, werden überdeckt. */
+    /** Only blocks whose translation differs from the original are covered. */
     val changed: Boolean
         get() = normalize(translated) != normalize(original)
 

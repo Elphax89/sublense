@@ -17,7 +17,7 @@
         android:paddingEnd="2dp"
         android:paddingBottom="6dp">
 
-        <!-- Nur sichtbar, wenn es etwas zu zeigen gibt: Vorschau, Status, "kopiert" -->
+        <!-- Only visible when there is something to show: preview, status, "copied" -->
         <TextView
             android:id="@+id/composer_preview"
             android:layout_width="match_parent"
@@ -37,7 +37,7 @@
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
-            <!-- Links: Sprachrichtung und Vorschau-Knopf, gleich groß übereinander -->
+            <!-- Left: language direction and Preview button, same size, stacked -->
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"

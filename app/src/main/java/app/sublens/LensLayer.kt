@@ -22,12 +22,12 @@ import kotlin.math.min
 import kotlin.math.roundToInt
 
 /**
- * Zeichnet die Übersetzungen direkt in die Linse: pro Textblock ein kleines Fenster
- * genau über dem Original, mit dessen Hintergrund- und Schriftfarbe.
+ * Draws the translations right into the lens: one small window per text block,
+ * exactly over the original, with its background and text colour.
  *
- * Jeder Block ist ein eigenes Fenster, damit nur die Textstellen selbst verdeckt werden –
- * überall sonst in der Linse gehen Berührungen weiter an die App darunter.
- * Antippen eines Blocks zeigt für ein paar Sekunden das Original.
+ * Each block is its own window so only the text itself is covered –
+ * everywhere else in the lens, touches go through to the app underneath.
+ * Tapping a block shows the original for a few seconds.
  */
 class LensLayer(
     private val ctx: Context,
@@ -40,38 +40,38 @@ class LensLayer(
     private var used = 0
 
     private var captureHidden = false
-    /** Nur Blöcke, die diesen Bereich (Ausschnitt-Koordinaten) berühren, werden zum Aufnehmen ausgeblendet. null = alle. */
+    /** Only blocks touching this area (crop coordinates) are hidden for capturing. null = all. */
     private var captureRegion: Rect? = null
     private var peekHidden = false
 
-    /** Original wird gerade gezeigt (true) oder wieder die Übersetzung (false). */
+    /** The original is being shown (true) or the translation again (false). */
     var onPeekChanged: ((Boolean) -> Unit)? = null
 
     val peeking: Boolean get() = peekHidden
 
-    /** Wird nach jeder sichtbaren Änderung der Blöcke aufgerufen. */
+    /** Called after every visible change of the blocks. */
     var onChanged: (() -> Unit)? = null
 
-    /** Bereiche der sichtbaren Blöcke in Ausschnitt-Koordinaten (für die Änderungserkennung). */
+    /** Areas of the visible blocks in crop coordinates (for change detection). */
     var drawnRects: List<Rect> = emptyList()
         private set
 
-    /** Dieselben Bereiche in Fensterkoordinaten. */
+    /** The same areas in window coordinates. */
     var windowRects: List<Rect> = emptyList()
         private set
 
     val hasContent: Boolean get() = used > 0
 
-    /** true, solange Blöcke wirklich über dem Original liegen (nicht ausgeblendet). */
+    /** true while blocks really cover the original (not hidden). */
     val showing: Boolean get() = used > 0 && !captureHidden && !peekHidden
 
     private val endPeek = Runnable { setPeek(false) }
 
     /**
-     * Zeigt [items] an. [originX]/[originY] ist die Fensterposition der linken oberen Ecke
-     * des Ausschnitts, [maxBottom] die Unterkante der Linse in Fensterkoordinaten.
+     * Shows [items]. [originX]/[originY] is the window position of the top left corner
+     * of the crop, [maxBottom] the bottom edge of the lens in window coordinates.
      */
-    /** Gibt true zurück, wenn dabei neue Fenster hinzugekommen sind (die liegen dann obenauf). */
+    /** Returns true if new windows were added (they are then on top). */
     fun show(items: List<LensItem>, originX: Int, originY: Int, maxBottom: Int, cropWidth: Int): Boolean {
         val visible = items.filter { it.changed }
         val rects = ArrayList<Rect>(visible.size)
@@ -83,7 +83,7 @@ class LensLayer(
             var left = originX + item.rect.left - pad
             val top = originY + item.rect.top - pad
             var width = item.rect.width() + 2 * pad
-            // Längere Übersetzung (z. B. Untertitel): erst zur Seite wachsen, statt die Schrift zu verkleinern.
+            // Longer translation (e.g. subtitles): grow sideways first instead of shrinking the text.
             val wanted = box.naturalWidth(item)
             if (wanted > width) {
                 val newWidth = min(wanted, cropWidth)
@@ -100,7 +100,7 @@ class LensLayer(
             box.params.width = width
             box.params.height = height
             if (same) {
-                // unverändert – Fenster nicht anfassen (kein Flackern, kein Neuzeichnen)
+                // unchanged – don't touch the window (no flicker, no redraw)
             } else if (box.added) {
                 try {
                     wm.updateViewLayout(box, box.params)
@@ -117,7 +117,7 @@ class LensLayer(
             rects += Rect(left - originX, top - originY, left - originX + width, top - originY + height)
             wins += Rect(left, top, left + width, top + height)
         }
-        // Übrige Fenster entfernen
+        // Remove the remaining windows
         for (i in visible.size until boxes.size) removeBox(boxes[i])
         while (boxes.size > visible.size + SPARE) boxes.removeAt(boxes.size - 1)
         used = visible.size
@@ -137,7 +137,7 @@ class LensLayer(
         onChanged?.invoke()
     }
 
-    /** Kurz ausblenden, damit die Bildschirmfreigabe das Original sieht. */
+    /** Hide briefly so screen capture sees the original. */
     fun setCaptureHidden(hidden: Boolean, region: Rect? = null) {
         if (captureHidden == hidden && captureRegion == region) return
         captureHidden = hidden
@@ -145,13 +145,13 @@ class LensLayer(
         applyVisibility()
     }
 
-    /** Original für ein paar Sekunden zeigen (Antippen eines Blocks). */
+    /** Show the original for a few seconds (tapping a block). */
     fun peekOriginal() {
         setPeek(true)
         main.postDelayed(endPeek, PEEK_MS)
     }
 
-    /** Original zeigen, bis es wieder ausgeschaltet wird (Vorschau-Knopf). */
+    /** Show the original until it is switched off again (Preview button). */
     fun setPeek(on: Boolean) {
         main.removeCallbacks(endPeek)
         if (peekHidden == on) return
@@ -183,7 +183,7 @@ class LensLayer(
         b.added = false
     }
 
-    /** Ein übersetzter Block. */
+    /** One translated block. */
     @SuppressLint("ViewConstructor")
     private inner class BoxView(context: Context) : View(context) {
         var added = false
@@ -221,7 +221,7 @@ class LensLayer(
             return max(minPx, item.lineHeightPx / 1.2f)
         }
 
-        /** Breite, die die Übersetzung in Originalgröße bräuchte (so viele Zeilen wie das Original). */
+        /** Width the translation would need at original size (as many lines as the original). */
         fun naturalWidth(item: LensItem): Int {
             textPaint.textSize = baseSize(item)
             val lines = max(1, (item.rect.height() + item.lineHeightPx / 2) / max(1, item.lineHeightPx))
@@ -229,7 +229,7 @@ class LensLayer(
             return (oneLine / lines * 1.08f + 2 * padX + 2).roundToInt()
         }
 
-        /** Bereitet den Text vor und gibt die nötige Fensterhöhe zurück. */
+        /** Prepares the text and returns the required window height. */
         private var boundKey: String? = null
         private var boundHeight = 0
 
@@ -240,10 +240,10 @@ class LensLayer(
             textPaint.color = item.foreground
             val avail = max(1, (width - 2 * padX).roundToInt())
             val minPx = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, MIN_TEXT_SP, resources.displayMetrics)
-            // Schriftgröße so wie im Original (Zeilenhöhe ≈ 1,2 × Schriftgröße) …
+            // Font size as in the original (line height ≈ 1.2 × font size) …
             var size = baseSize(item)
             var l = makeLayout(item.translated, size, avail)
-            // … und verkleinern, bis der übersetzte Text in die Fläche des Originals passt.
+            // … and shrink until the translated text fits into the area of the original.
             while (l.height > minHeight - 2 && size > minPx) {
                 size = max(minPx, size * 0.92f)
                 l = makeLayout(item.translated, size, avail)

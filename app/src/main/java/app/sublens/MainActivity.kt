@@ -27,7 +27,7 @@ import com.google.mlkit.common.model.RemoteModelManager
 import com.google.mlkit.nl.translate.TranslateLanguage
 import com.google.mlkit.nl.translate.TranslateRemoteModel
 
-/** Startseite: Berechtigungen, Start/Stopp und alle Einstellungen. */
+/** Home screen: permissions, start/stop and all settings. */
 class MainActivity : Activity() {
 
     private lateinit var prefs: Prefs
@@ -74,14 +74,14 @@ class MainActivity : Activity() {
         OverlayService.stateListener = null
     }
 
-    // ---------------------------------------------------------------- Start / Stopp
+    // ---------------------------------------------------------------- Start / stop
 
     private fun onStartClicked() {
         if (OverlayService.isRunning) {
             btnStart.isEnabled = false
             btnStart.setText(R.string.stopping)
             startService(Intent(this, OverlayService::class.java).setAction(OverlayService.ACTION_STOP))
-            // Falls die Rückmeldung des Dienstes ausbleibt: spätestens dann neu anzeigen.
+            // In case the service doesn't report back: refresh by then at the latest.
             btnStart.postDelayed({ refreshStartButton() }, 1500)
             return
         }
@@ -92,7 +92,7 @@ class MainActivity : Activity() {
         }
         val mpm = getSystemService(MediaProjectionManager::class.java)
         val captureIntent = if (Build.VERSION.SDK_INT >= 34) {
-            // Immer den ganzen Bildschirm – sonst passen die Rahmen-Koordinaten nicht.
+            // Always the entire screen – otherwise the frame coordinates don't match.
             mpm.createScreenCaptureIntent(MediaProjectionConfig.createConfigForDefaultDisplay())
         } else {
             mpm.createScreenCaptureIntent()
@@ -154,14 +154,14 @@ class MainActivity : Activity() {
         }
     }
 
-    /** Ergebnis kurz im Knopf zeigen, dann wieder "Nach Updates suchen". */
+    /** Show the result briefly in the button, then "Check for updates" again. */
     private fun flashUpdateButton(res: Int) {
         val btn = findViewById<Button>(R.id.btn_update)
         btn.setText(res)
         btn.postDelayed({ if (pendingRelease == null && !Updater.downloading) btn.setText(R.string.update_check) }, 3000)
     }
 
-    /** Aus "Nach Updates suchen" wird "Neue Version … jetzt installieren?". */
+    /** "Check for updates" turns into "New version … install now?". */
     private fun showUpdate(release: Updater.Release?) {
         if (isFinishing || isDestroyed || release == null || Updater.downloading) return
         pendingRelease = release
@@ -174,12 +174,12 @@ class MainActivity : Activity() {
     private fun installUpdate() {
         val release = pendingRelease ?: return
         if (!packageManager.canRequestPackageInstalls()) {
-            // Einmalig: SubLens darf Apps installieren (nur für die eigenen Updates).
+            // Once: SubLens may install apps (only its own updates).
             Toast.makeText(this, R.string.update_allow, Toast.LENGTH_LONG).show()
             startActivity(Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:$packageName")))
             return
         }
-        // Laufendes Overlay vorher beenden – die Installation startet die App neu.
+        // Stop the running overlay first – installing restarts the app.
         if (OverlayService.isRunning) {
             startService(Intent(this, OverlayService::class.java).setAction(OverlayService.ACTION_STOP))
         }
@@ -197,7 +197,7 @@ class MainActivity : Activity() {
         }
     }
 
-    // ---------------------------------------------------------------- Berechtigungen
+    // ---------------------------------------------------------------- Permissions
 
     private fun setupPermissions() {
         findViewById<Button>(R.id.btn_overlay).setOnClickListener { openOverlaySettings() }
@@ -238,7 +238,7 @@ class MainActivity : Activity() {
         refreshPermissions()
     }
 
-    // ---------------------------------------------------------------- Sprache
+    // ---------------------------------------------------------------- Language
 
     private fun setupLanguages() {
         setupSpinner(
@@ -287,7 +287,7 @@ class MainActivity : Activity() {
         rowScript.visibility = if (prefs.sourceLang == Languages.AUTO) View.VISIBLE else View.GONE
     }
 
-    /** Farbkreise für Rahmen und Griffe der Linse. */
+    /** Colour circles for the lens frame and handles. */
     private fun setupLensColors() {
         val row = findViewById<LinearLayout>(R.id.row_lens_color)
         val d = resources.displayMetrics.density
@@ -335,7 +335,7 @@ class MainActivity : Activity() {
         }
     }
 
-    // ---------------------------------------------------------------- Anzeige & Tempo
+    // ---------------------------------------------------------------- Display & speed
 
     private fun setupDisplay() {
         val mode = findViewById<RadioGroup>(R.id.radio_mode)
@@ -372,7 +372,7 @@ class MainActivity : Activity() {
         }
     }
 
-    /** "Position der Leiste" gibt es nur, wenn die Übersetzung in der Leiste steht. */
+    /** "Bar position" only exists when the translation is shown in the bar. */
     private fun updateBarPosRow() {
         val v = if (prefs.lensMode) View.GONE else View.VISIBLE
         findViewById<View>(R.id.label_bar_pos).visibility = v
@@ -397,14 +397,14 @@ class MainActivity : Activity() {
         }
     }
 
-    // ---------------------------------------------------------------- Sprachpakete
+    // ---------------------------------------------------------------- Language packs
 
     private fun setupModels() {
         findViewById<Switch>(R.id.switch_wifi).apply {
             isChecked = prefs.wifiOnly
             setOnCheckedChangeListener { _, checked -> prefs.wifiOnly = checked }
         }
-        // Jede Sprache lässt sich von Hand laden, z. B. vor einer Reise ohne Internet.
+        // Any language can be downloaded by hand, e.g. before a trip without internet.
         val spinner = findViewById<Spinner>(R.id.spinner_model)
         modelAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, ArrayList<String>()).also {
             it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
@@ -433,7 +433,7 @@ class MainActivity : Activity() {
 
     private var modelAdapter: ArrayAdapter<String>? = null
 
-    /** Auswahlliste: alle Sprachen, bereits geladene mit ✓. */
+    /** Picker: all languages, already downloaded ones with ✓. */
     private fun updateModelSpinner(installed: Set<String>) {
         val adapter = modelAdapter ?: return
         adapter.clear()
@@ -470,7 +470,7 @@ class MainActivity : Activity() {
         }
         val name = textRow(Languages.displayName(lang), dim = false)
         row.addView(name, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
-        // Englisch ist das Basis-Paket (Zwischensprache) und bleibt immer installiert.
+        // English is the base pack (pivot language) and always stays installed.
         if (lang != TranslateLanguage.ENGLISH) {
             val delete = TextView(this).apply {
                 setText(R.string.models_delete)

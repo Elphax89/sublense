@@ -8,7 +8,7 @@
     android:paddingStart="2dp"
     android:paddingEnd="2dp">
 
-    <!-- Video-Modus an/aus -->
+    <!-- Video mode on/off -->
     <ImageButton
         android:id="@+id/btn_video"
         android:layout_width="20dp"
@@ -20,7 +20,7 @@
         android:scaleType="fitCenter"
         android:src="@drawable/ic_video" />
 
-    <!-- Antwortzeile über/unter die Linse tauschen -->
+    <!-- Swap the reply line above/below the lens -->
     <ImageButton
         android:id="@+id/btn_swap"
         android:layout_width="20dp"

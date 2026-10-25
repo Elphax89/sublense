@@ -12,11 +12,11 @@ import android.os.HandlerThread
 import java.nio.ByteBuffer
 
 /**
- * Liest den Bildschirm über die Bildschirmfreigabe (MediaProjection).
- * Es wird nichts gespeichert: Jedes Bild liegt nur kurz im Arbeitsspeicher,
- * davon wird nur der Rahmen-Ausschnitt kopiert, der Rest sofort verworfen.
+ * Reads the screen via screen capture (MediaProjection).
+ * Nothing is stored: each frame only lives briefly in memory,
+ * only the lens area is copied from it, the rest is discarded immediately.
  *
- * Alle Zugriffe auf Reader/Display laufen auf dem eigenen [handler]-Thread.
+ * All access to the reader/display runs on its own [handler] thread.
  */
 class ScreenCapturer(
     private val projection: MediaProjection,
@@ -33,12 +33,12 @@ class ScreenCapturer(
 
     private val callback = object : MediaProjection.Callback() {
         override fun onStop() {
-            // z. B. über den "Teilen beenden"-Chip in der Statusleiste
+            // e.g. via the "Stop sharing" chip in the status bar
             onStopped()
         }
     }
 
-    /** Muss genau einmal aufgerufen werden (ab Android 14 ist jede Freigabe nur einmal nutzbar). */
+    /** Must be called exactly once (from Android 14, each capture permission can only be used once). */
     fun start(w: Int, h: Int, dpi: Int) {
         projection.registerCallback(callback, handler)
         val r = ImageReader.newInstance(w, h, PixelFormat.RGBA_8888, 2)
@@ -57,7 +57,7 @@ class ScreenCapturer(
         )
     }
 
-    /** Nach dem Drehen: gleiche Freigabe weiterverwenden, nur Größe anpassen. */
+    /** After rotating: keep using the same capture, only adjust the size. */
     fun resize(w: Int, h: Int, dpi: Int) {
         handler.post {
             if (w == width && h == height) return@post
@@ -77,9 +77,9 @@ class ScreenCapturer(
     }
 
     /**
-     * Holt das neueste Bild und schneidet den Bereich [crop] aus.
-     * Gibt null zurück, wenn sich seit dem letzten Mal nichts geändert hat.
-     * Nur auf dem [handler]-Thread aufrufen.
+     * Gets the newest frame and crops the area [crop].
+     * Returns null if nothing changed since last time.
+     * Only call on the [handler] thread.
      */
     fun grab(crop: Rect): Bitmap? {
         val r = reader ?: return null
@@ -125,9 +125,9 @@ class ScreenCapturer(
     }
 
     /**
-     * Kleiner Fingerabdruck des Ausschnitts (Helligkeit auf einem groben Raster), um zu merken,
-     * ob sich unter der Linse etwas bewegt. Punkte in [mask] (eigene Übersetzungen) zählen nicht.
-     * Gibt null zurück, wenn seit dem letzten Mal kein neues Bild kam (= nichts hat sich geändert).
+     * Small fingerprint of the crop (brightness on a coarse grid) to notice
+     * whether something moves under the lens. Points in [mask] (our own translations) don't count.
+     * Returns null if no new frame arrived since last time (= nothing changed).
      */
     fun signature(crop: Rect, mask: List<Rect>): IntArray? {
         val r = reader ?: return null
@@ -200,12 +200,12 @@ class ScreenCapturer(
         const val SIG_Y = 24
 
         /**
-         * Bereich (in Ausschnitt-Koordinaten [w]×[h]), in dem sich etwas verändert hat, um eine Rasterzelle
-         * erweitert. null = nichts verändert.
+         * Area (in crop coordinates [w]×[h]) where something changed, extended by one grid cell.
+         * null = nothing changed.
          */
         const val CELL_THRESHOLD = 22
 
-        /** [settleRef]: Raster vom vorigen Takt. Bewegt sich der veränderte Bereich noch, gibt es null (abwarten). */
+        /** [settleRef]: fingerprint of the previous tick. If the changed area is still moving, returns null (wait). */
         fun changedRegion(
             a: IntArray,
             b: IntArray,
@@ -248,7 +248,7 @@ class ScreenCapturer(
             )
         }
 
-        /** Hat sich außerhalb der eigenen Übersetzungen sichtbar etwas verändert? */
+        /** Has something visibly changed outside our own translations? */
         fun changed(a: IntArray, b: IntArray): Boolean {
             if (a.size != b.size) return true
             var count = 0

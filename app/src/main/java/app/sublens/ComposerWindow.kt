@@ -23,12 +23,12 @@ import android.widget.TextView
 import kotlin.math.roundToInt
 
 /**
- * Antwortzeile am unteren Ende des Overlays: in der eigenen Sprache schreiben,
- * Übersetzung in die Sprache des Chats landet in der Zwischenablage.
+ * Reply line at the bottom of the overlay: write in your own language,
+ * the translation into the chat's language goes to the clipboard.
  *
- * Das Fenster ist normalerweise nicht fokussierbar (damit Tastatur und Zurück-Taste
- * bei der App darunter bleiben). Erst beim Antippen des Eingabefelds wird es kurz
- * fokussierbar und holt die Tastatur; nach dem Kopieren oder Tippen daneben wieder zurück.
+ * The window is normally not focusable (so the keyboard and the back key
+ * stay with the app underneath). Only when the input field is tapped does it become
+ * focusable and bring up the keyboard; after copying or tapping elsewhere it gives it back.
  */
 class ComposerWindow(
     private val ctx: Context,
@@ -59,7 +59,7 @@ class ComposerWindow(
     private val colorDim = ctx.getColor(R.color.text_dim)
     private val colorAccent = ctx.getColor(R.color.accent)
 
-    @Suppress("DEPRECATION") // ADJUST_RESIZE nur noch für Android < 11 relevant
+    @Suppress("DEPRECATION") // ADJUST_RESIZE only matters below Android 11
     val params = WindowManager.LayoutParams(
         WindowManager.LayoutParams.MATCH_PARENT,
         WindowManager.LayoutParams.WRAP_CONTENT,
@@ -74,7 +74,7 @@ class ComposerWindow(
         softInputMode = WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE or
             WindowManager.LayoutParams.SOFT_INPUT_STATE_UNCHANGED
         if (Build.VERSION.SDK_INT >= 30) {
-            // Nur der Tastatur ausweichen: das Fenster rutscht beim Tippen über die Tastatur.
+            // Only avoid the keyboard: while typing, the window slides up above the keyboard.
             fitInsetsTypes = WindowInsets.Type.ime()
             layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS
         } else if (Build.VERSION.SDK_INT >= 28) {
@@ -87,11 +87,11 @@ class ComposerWindow(
     var editing = false
         private set
 
-    /** Höhe im Ruhezustand – für die Anordnung des Overlays. */
+    /** Height at rest – used to arrange the overlay. */
     var stableHeight = 0
         private set
 
-    /** Höhe ohne Vorschau-/Statuszeile (für die Anordnung der Linse). */
+    /** Height without the preview/status line (used to arrange the lens). */
     var baseHeight = 0
         private set
 
@@ -131,12 +131,12 @@ class ComposerWindow(
                 input.requestFocus()
                 imm.showSoftInput(input, InputMethodManager.SHOW_IMPLICIT)
             } else if (hadFocus) {
-                // In die App darunter getippt → Tastatur gehört wieder ihr.
+                // Tapped into the app underneath → the keyboard belongs to it again.
                 stopEditing()
             }
         }
         if (Build.VERSION.SDK_INT >= 30) {
-            // Sicherheitsnetz: falls das System das Fenster nicht über die Tastatur schiebt, selbst nachrücken.
+            // Safety net: if the system doesn't push the window above the keyboard, move it ourselves.
             view.setOnApplyWindowInsetsListener { v, insets ->
                 if (editing) {
                     val overlap = insets.getInsets(WindowInsets.Type.ime()).bottom
@@ -184,7 +184,7 @@ class ComposerWindow(
         }
     }
 
-    // ---------------------------------------------------------------- Fenster
+    // ---------------------------------------------------------------- Window
 
     fun attach() {
         if (attached) return
@@ -208,7 +208,7 @@ class ComposerWindow(
         attached = false
     }
 
-    /** Position im Ruhezustand (direkt unter dem restlichen Overlay). */
+    /** Position at rest (directly next to the rest of the overlay). */
     fun place(y: Int, width: Int) {
         normalY = y
         params.width = width
@@ -218,7 +218,7 @@ class ComposerWindow(
     private fun applyPosition() {
         params.x = 0
         params.y = when {
-            // Vor Android 11 weicht das Fenster der Tastatur nicht zuverlässig aus → beim Tippen oben anzeigen.
+            // Before Android 11 the window doesn't reliably avoid the keyboard → show it at the top while typing.
             editing && Build.VERSION.SDK_INT < 30 -> dp(56f)
             else -> (normalY - imeShift).coerceAtLeast(0)
         }
@@ -229,7 +229,7 @@ class ComposerWindow(
         }
     }
 
-    // ---------------------------------------------------------------- Bearbeiten
+    // ---------------------------------------------------------------- Editing
 
     private fun startEditing() {
         editing = true
@@ -270,7 +270,7 @@ class ComposerWindow(
 
     private fun currentText(): String = input.text?.toString()?.trim().orEmpty()
 
-    // ---------------------------------------------------------------- Anzeige
+    // ---------------------------------------------------------------- Display
 
     fun setLanguages(own: String, reply: String) {
         val changed = own != ownLang || reply != replyLang
@@ -281,13 +281,13 @@ class ComposerWindow(
         if (currentText().isEmpty()) showPlaceholder() else if (changed) schedulePreview()
     }
 
-    /** Vorschau-Knopf hervorheben, solange das Original gezeigt wird. */
+    /** Highlight the Preview button while the original is shown. */
     fun setPeekActive(active: Boolean) {
         peekButton.isSelected = active
         peekButton.setTextColor(if (active) colorAccent else colorMain)
     }
 
-    /** Live-Vorschau; wird ignoriert, wenn inzwischen etwas anderes im Feld steht. */
+    /** Live preview; ignored if the field contains something else by now. */
     fun showPreview(forText: String, translated: String) {
         if (forText != currentText()) return
         setLine(translated, colorMain)
@@ -297,14 +297,14 @@ class ComposerWindow(
         setLine(message, colorDim)
     }
 
-    /** Statusmeldung, die nach ein paar Sekunden von selbst verschwindet. */
+    /** Status message that disappears by itself after a few seconds. */
     fun showTimedStatus(message: String, ms: Long) {
         setLine(message, colorDim)
         main.removeCallbacks(resetRunnable)
         main.postDelayed(resetRunnable, ms)
     }
 
-    /** Statusmeldung entfernen, sofern gerade nichts getippt wird. */
+    /** Remove the status message unless something is being typed. */
     fun clearStatus() {
         if (currentText().isEmpty()) showPlaceholder()
     }
@@ -324,7 +324,7 @@ class ComposerWindow(
         main.postDelayed(resetRunnable, COPIED_HINT_MS)
     }
 
-    /** Nichts zu zeigen: Zeile ausblenden, damit die Antwortzeile schmal bleibt. */
+    /** Nothing to show: hide the line so the reply line stays slim. */
     private fun showPlaceholder() {
         preview.text = ""
         preview.visibility = View.GONE

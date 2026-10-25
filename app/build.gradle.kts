@@ -3,7 +3,7 @@ plugins {
     id("org.jetbrains.kotlin.android")
 }
 
-// Jeder GitHub-Build bekommt eine höhere Versionsnummer, damit Updates über die alte App installieren.
+// Every GitHub build gets a higher version number so updates install over the old app.
 val buildNumber = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull() ?: 1
 
 android {
@@ -16,7 +16,7 @@ android {
         targetSdk = 35
         versionCode = buildNumber
         versionName = "0.2.$buildNumber"
-        // Nur Handy-Prozessoren (ARM) – spart viel Platz gegenüber allen Architekturen.
+        // Phone processors (ARM) only – saves a lot of space compared to all architectures.
         ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
     }
 
@@ -59,14 +59,14 @@ android {
 }
 
 dependencies {
-    // Texterkennung (OCR) über Google Play-Dienste – kleine APK, Modelle laden einmalig nach.
+    // Text recognition (OCR) via Google Play services – small APK, models download once.
     implementation("com.google.android.gms:play-services-mlkit-text-recognition:19.0.1")
     implementation("com.google.android.gms:play-services-mlkit-text-recognition-chinese:16.0.1")
     implementation("com.google.android.gms:play-services-mlkit-text-recognition-japanese:16.0.1")
     implementation("com.google.android.gms:play-services-mlkit-text-recognition-korean:16.0.1")
     implementation("com.google.android.gms:play-services-mlkit-text-recognition-devanagari:16.0.1")
 
-    // Spracherkennung + Offline-Übersetzung
+    // Language identification + offline translation
     implementation("com.google.mlkit:language-id:17.0.6")
     implementation("com.google.mlkit:translate:17.0.3")
 }

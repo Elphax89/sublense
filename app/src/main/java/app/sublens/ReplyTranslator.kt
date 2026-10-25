@@ -9,8 +9,8 @@ import com.google.mlkit.nl.translate.Translator
 import com.google.mlkit.nl.translate.TranslatorOptions
 
 /**
- * Übersetzt die eigene Antwort (eigene Sprache → Sprache des Chats).
- * Nutzt dieselben Offline-Sprachpakete wie die Untertitel-Übersetzung.
+ * Translates your own reply (own language → chat's language).
+ * Uses the same offline language packs as the subtitle translation.
  */
 class ReplyTranslator(private val prefs: Prefs) {
 
@@ -22,8 +22,8 @@ class ReplyTranslator(private val prefs: Prefs) {
     private var closed = false
 
     /**
-     * [onSlow] meldet sich, wenn es länger dauert (meist: Sprachpaket wird geladen).
-     * [onDone] liefert die Übersetzung oder null bei einem Fehler.
+     * [onSlow] fires when it takes longer (usually: a language pack is downloading).
+     * [onDone] delivers the translation, or null on error.
      */
     fun translate(text: String, from: String, to: String, onSlow: () -> Unit, onDone: (String?) -> Unit) {
         if (from == to) {
@@ -58,12 +58,12 @@ class ReplyTranslator(private val prefs: Prefs) {
                         done(result)
                     }
                     .addOnFailureListener { e ->
-                        Log.w(TAG, "Antwort-Übersetzung fehlgeschlagen", e)
+                        Log.w(TAG, "Reply translation failed", e)
                         done(null)
                     }
             }
             .addOnFailureListener { e ->
-                Log.w(TAG, "Sprachpaket für Antwort fehlt", e)
+                Log.w(TAG, "Language pack for reply missing", e)
                 done(null)
             }
     }
