@@ -16,6 +16,8 @@ android {
         targetSdk = 35
         versionCode = buildNumber
         versionName = "0.2.$buildNumber"
+        // Nur Handy-Prozessoren (ARM) – spart viel Platz gegenüber allen Architekturen.
+        ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
     }
 
     signingConfigs {
