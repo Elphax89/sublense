@@ -25,7 +25,8 @@ Updates installierst du genauso: Die neue APK einfach über die alte installiere
 ## Funktionen
 
 - 🔲 **Rahmen** – durchsichtig, immer bildschirmbreit, im Hoch- und Querformat. An der Leiste verschieben, am Griff die Höhe ändern (mindestens 1/5 des Bildschirms). Berührungen gehen durch zur App darunter.
-- 💬 **Übersetzungsleiste** – unter oder über dem Rahmen, damit das Video frei bleibt. Das Kürzel zeigt die Sprachen, z. B. `EN → DE`.
+- 🔍 **Übersetzung direkt in der Linse** – jeder Textblock wird an seiner Stelle ersetzt, in ähnlicher Größe und Farbe wie das Original. Antippen zeigt 3 Sekunden das Original. Ändert sich unter der Linse etwas, blendet sie sich für einen Augenblick aus, um neu zu lesen.
+- 💬 **Oder in der Leiste** – wahlweise unter oder über dem Rahmen, ganz ohne Blinken. Das Kürzel zeigt die Sprachen, z. B. `EN → DE`.
 - ✍️ **Antwortzeile** (optional) – in deiner Sprache schreiben, Kopieren tippen. Die Übersetzung in die Sprache des Chats liegt dann in der Zwischenablage, fertig zum Einfügen in Telegram, WeChat & Co.
 - 🌍 **Über 50 Sprachen** mit automatischer Erkennung.
 - ⚙️ **Schnell-Einstellungen** direkt im Overlay: Quell- und Zielsprache, Antwortsprache, Leiste oben/unten, Antwortzeile an/aus.
@@ -46,13 +47,14 @@ Updates installierst du genauso: Die neue APK einfach über die alte installiere
 | Bereich | Optionen |
 |---|---|
 | Sprache | Von (automatisch oder fest), Nach, Schrift für die automatische Erkennung |
-| Anzeige | Leiste über/unter dem Rahmen, Textgröße, Original zusätzlich anzeigen |
+| Anzeige | Übersetzung in der Linse oder in der Leiste, Leiste über/unter dem Rahmen, Textgröße, Original zusätzlich anzeigen |
 | Antwortzeile | an/aus, Antwortsprache (automatisch = erkannte Sprache) |
 | Aktualisierung | Schnell 0,3 s · Normal 0,5 s · Akku sparen 1 s |
 | Sprachpakete | Nur über WLAN laden, geladene Pakete anzeigen und löschen |
 
 ## Gut zu wissen
 
+- Android verlangt bei jedem Start erneut die Bildschirmfreigabe – dort **Gesamter Bildschirm** wählen.
 - Nur für Android 8 oder neuer. iOS erlaubt keine Overlays über anderen Apps.
 - Netflix, Disney+ und Banking-Apps sperren die Bildschirmfreigabe, dort wird nichts erkannt.
 - Die Texterkennung liest lateinische, chinesische, japanische, koreanische und Devanagari-Schrift. Kyrillisch, Arabisch, Griechisch, Hebräisch und Thai sind nur als Zielsprache möglich.
