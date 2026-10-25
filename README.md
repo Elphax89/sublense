@@ -1,12 +1,12 @@
 # SubLens
 
-**Live screen translation for Android.** A transparent lens you drag over YouTube subtitles, chats or any other text on screen. The translation appears right on top of the original, in its colours and at roughly its size. Reply in the other person's language with one tap.
+**Live screen translation for Android.** A transparent lens you drag over YouTube subtitles, chats or any other text on screen. The translation appears right on top of the original, in its colours and at roughly its size. Reply in the other person's language with one tap. And on holiday, point the camera at a menu, a sign or the QR code on the table.
 
 Free, open source, fully offline. No account, no ads, nothing leaves your phone.
 
-![SubLens on a phone: subtitles translated in place, a Japanese chat translated to English, a reply copied in Japanese, the Preview button showing the original](docs/screenshots.jpg)
+![SubLens on a phone: subtitles translated in place, a reply copied in Japanese, a Chinese menu translated with the camera, and a restaurant's ordering page translated after scanning its QR code](docs/screenshots.jpg)
 
-🎬 [Watch the 40-second demo](docs/demo.mp4)
+🎬 [Watch the 1-minute demo](docs/demo.mp4)
 
 ## ⬇️ Download
 
@@ -29,12 +29,14 @@ Download page with instructions: **https://elphax89.github.io/sublense/**
 - 💬 **Subtitles, chats, any text.** Works on top of YouTube, Telegram, WeChat, websites, games and other apps.
 - ✍️ **Reply line.** Type in your own language and tap copy. The translation into the chat's language is on your clipboard, ready to paste.
 - 🎬 **Chat mode and video mode.** In chat mode (default) SubLens ignores GIFs, animated emojis and profile pictures, so translations stay perfectly still. Tap ▶ on the lens for video mode: moving pictures are read continuously so subtitles keep up.
+- 📷 **Camera translation.** Point the camera at a menu, sign or poster: translations appear live in the picture. The shutter takes a sharp photo to read calmly, tap a dish to see the original, copy all of it. Works with photos from your gallery too, or share a picture to SubLens from any app.
+- 🔳 **QR codes.** SubLens spots QR codes in the camera. *Open* opens the link; *Open + translate* starts the lens first, so a restaurant's ordering page in Chinese shows up in your language and you can order.
 - 👁️ **Preview.** Shows the original text until you tap it again. Tapping a single translation shows its original for 3 seconds.
 - 🔲 **A lens you can move and resize.** Always full screen width, in portrait and landscape. Drag the top or bottom handle to change the height (from 1/5 of the screen up to nearly all of it), drag the ↕ button to move it. ▶ ⇅ ⚙ ✕ sit in the bottom right corner; ⇅ moves the reply line above or below the lens when there is room.
 - 🌍 **50+ languages** with automatic detection, and a ⇅ button to swap From and To. Chinese in traditional or simplified characters, and SubLens converts directly between the two.
 - 🎨 **Your lens colour.** Pick one of nine colours for the frame and handles.
 - 📴 **Offline.** Text recognition, language detection and translation run on the phone (Google ML Kit). Each language pack downloads once (about 30 MB), and you can download any pack by hand, for example before a trip.
-- 🔒 **Private.** No server, no account. Screen frames only live briefly in memory and are never saved.
+- 🔒 **Private.** No server, no account. Screen frames and camera pictures only live briefly in memory and are never saved.
 - 🌐 **The app speaks your phone's language:** English, German, Spanish, French, Italian, Portuguese, Polish, Turkish, Russian, Chinese (simplified and traditional), Japanese and Korean.
 
 ## How to use it
@@ -42,6 +44,8 @@ Download page with instructions: **https://elphax89.github.io/sublense/**
 **Subtitles:** open YouTube, turn on captions (CC) and move the lens over them. The translation replaces the subtitle.
 
 **Chats:** put the lens over the messages. To answer, tap the reply line under the lens, write in your language, tap the copy button (or *Done* on the keyboard) and paste into the chat.
+
+**Camera:** tap *📷 Camera* on the home screen. At the top choose From and To; for a Chinese menu pick *Auto – Chinese* so SubLens reads Chinese characters. Point at the text, or tap the shutter for a sharp photo. If a QR code is in view, a card with *Open* and *Open + translate* appears.
 
 **Stop:** ✕ on the lens or *Stop* in the notification.
 
@@ -86,6 +90,10 @@ Releases are signed with a private key that lives only in the repository's GitHu
 | `ScreenCapturer.kt` | Reads the screen, crops the lens area, change detection |
 | `ComposerWindow.kt` | Reply line: input, keyboard, preview |
 | `ReplyTranslator.kt` | Translates your reply for the clipboard |
+| `CameraActivity.kt` | Camera screen: live preview, photo, gallery/share, QR card, Open + lens |
+| `CameraTranslator.kt` | Text recognition, QR codes, language detection and translation for one picture |
+| `CameraOverlayView.kt` | Draws translations over the camera picture or photo |
+| `BlockBuilder.kt` | Turns recognised text into blocks with size and colours (shared by lens and camera) |
 | `ChineseScript.kt` | Simplified ↔ traditional Chinese |
 | `Updater.kt` | Checks GitHub releases and installs updates |
 | `Prefs.kt`, `Languages.kt` | Settings, language lists |
