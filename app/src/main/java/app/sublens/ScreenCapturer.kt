@@ -248,6 +248,61 @@ class ScreenCapturer(
             )
         }
 
+        /** Fingerprint of an already cropped bitmap (same grid as [signature], nothing masked). */
+        fun signatureOf(bitmap: android.graphics.Bitmap): IntArray {
+            val out = IntArray(SIG_X * SIG_Y)
+            val w = bitmap.width
+            val h = bitmap.height
+            for (gy in 0 until SIG_Y) {
+                val y = ((gy + 0.5f) * h / SIG_Y).toInt().coerceIn(0, h - 1)
+                for (gx in 0 until SIG_X) {
+                    val x = ((gx + 0.5f) * w / SIG_X).toInt().coerceIn(0, w - 1)
+                    val c = bitmap.getPixel(x, y)
+                    out[gy * SIG_X + gx] = (android.graphics.Color.red(c) * 3 + android.graphics.Color.green(c) * 6 + android.graphics.Color.blue(c)) / 10
+                }
+            }
+            return out
+        }
+
+        /**
+         * Did the picture shift up or down between [a] and [b] (scrolling)? Returns the shift in grid rows,
+         * 0 if there is no clear shift (still picture, animation, something else changed).
+         */
+        fun verticalShift(a: IntArray, b: IntArray): Int {
+            if (a.size != b.size || a.size != SIG_X * SIG_Y) return 0
+            fun err(dy: Int): Float {
+                var sum = 0L
+                var n = 0
+                for (y in 0 until SIG_Y) {
+                    val py = y - dy
+                    if (py !in 0 until SIG_Y) continue
+                    for (x in 0 until SIG_X) {
+                        val va = a[py * SIG_X + x]
+                        val vb = b[y * SIG_X + x]
+                        if (va < 0 || vb < 0) continue
+                        sum += kotlin.math.abs(va - vb)
+                        n++
+                    }
+                }
+                return if (n < SIG_X * 3) Float.MAX_VALUE else sum.toFloat() / n
+            }
+            val e0 = err(0)
+            if (e0 < 5f) return 0
+            var best = 0
+            var bestErr = e0
+            for (dy in -MAX_SHIFT_ROWS..MAX_SHIFT_ROWS) {
+                if (dy == 0) continue
+                val e = err(dy)
+                if (e < bestErr) {
+                    bestErr = e
+                    best = dy
+                }
+            }
+            return if (best != 0 && bestErr < e0 * 0.55f) best else 0
+        }
+
+        private const val MAX_SHIFT_ROWS = 6
+
         /** Has something visibly changed outside our own translations? */
         fun changed(a: IntArray, b: IntArray): Boolean {
             if (a.size != b.size) return true

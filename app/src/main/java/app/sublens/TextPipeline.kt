@@ -435,6 +435,14 @@ class TextPipeline(
 
     // ---------------------------------------------------------------- Helpers
 
+    /** The lens was cleared (e.g. while scrolling): the next frame must be shown even if it looks the same. */
+    fun invalidateShown() {
+        last = null
+        lastDelivered = emptyList()
+        lastDeliveredCrop = null
+        shownTranslations = emptySet()
+    }
+
     /** Settings changed: re-translate the next text right away. */
     fun reset() {
         generation++

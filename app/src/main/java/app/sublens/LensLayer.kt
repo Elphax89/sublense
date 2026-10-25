@@ -17,6 +17,7 @@ import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
 import android.view.WindowManager
+import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
@@ -88,7 +89,11 @@ class LensLayer(
             if (wanted > width) {
                 val newWidth = min(wanted, cropWidth)
                 val center = left + width / 2
-                left = (center - newWidth / 2).coerceIn(originX, originX + cropWidth - newWidth)
+                val centred = abs(center - (originX + cropWidth / 2)) < cropWidth * 0.08f
+                // Centred text (subtitles) grows to both sides; chat bubbles and paragraphs keep their
+                // left edge and grow to the right, so nothing next to them (avatars) gets covered.
+                left = if (centred) center - newWidth / 2 else left
+                left = left.coerceIn(originX, originX + cropWidth - newWidth)
                 width = newWidth
             }
             val minHeight = item.rect.height() + 2 * pad

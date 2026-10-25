@@ -91,6 +91,7 @@ class CameraActivity : ComponentActivity() {
     private var qrSeenAt = 0L
     private var pendingUrl: String? = null
     private var detectedLang: String? = null
+    private var lastTextAt = 0L
 
     private val hideQr = Runnable { if (!frozen) showQr(null) }
 
@@ -353,6 +354,12 @@ class CameraActivity : ComponentActivity() {
     }
 
     private fun showResult(result: CameraTranslator.Result, w: Int, h: Int, fit: CameraOverlayView.Fit, live: Boolean) {
+        val now = SystemClock.uptimeMillis()
+        if (live && result.items.isEmpty() && overlay.hasText && now - lastTextAt < LIVE_HOLD_MS) {
+            // One blurry or shaky frame: keep the last translations instead of blinking.
+            return
+        }
+        if (result.items.isNotEmpty()) lastTextAt = now
         if (result.sourceLang != null) {
             detectedLang = result.sourceLang
             updateChips()
@@ -629,6 +636,7 @@ class CameraActivity : ComponentActivity() {
         private const val REQ_PICK = 32
         private const val REQ_CAPTURE_SCREEN = 33
         private const val LIVE_INTERVAL_MS = 900L
+        private const val LIVE_HOLD_MS = 1800L
         private const val QR_LINGER_MS = 4000L
         private const val MAX_SIDE = 2400
     }

@@ -38,8 +38,10 @@ object BlockBuilder {
      * Lines of a block are joined into one sentence; blocks (paragraphs, speakers,
      * chat messages, menu items) stay separate. Lines without letters (times, prices, symbols) are dropped.
      * [skipEdgeLines]: drop lines cut off by the top or bottom edge of [bitmap] (screen lens).
+     * [strictStyle]: split blocks on colour changes too (screen). Camera pictures have uneven light,
+     * so there only size and spacing split a block – otherwise paragraphs would break up differently every frame.
      */
-    fun build(text: Text, script: Script, bitmap: Bitmap, skipEdgeLines: Boolean): List<TextBlock> {
+    fun build(text: Text, script: Script, bitmap: Bitmap, skipEdgeLines: Boolean, strictStyle: Boolean = true): List<TextBlock> {
         val separator = if (script.joinsWithoutSpace) "" else " "
         val blocks = ArrayList<TextBlock>()
         for (block in text.textBlocks) {
@@ -48,14 +50,14 @@ object BlockBuilder {
             // otherwise each part gets its own box with its own font size.
             var group = ArrayList<LineInfo>()
             for (line in block.lines) {
-                if (line.text.count { ch -> ch.isLetter() } < 2) continue
-                val box = line.boundingBox ?: continue
+                val (lineText, box) = withoutTrailingMeta(line, separator) ?: continue
+                if (lineText.count { ch -> ch.isLetter() } < 2) continue
                 if (box.isEmpty) continue
                 // Line cut off by the lens edge: only half readable – skip it.
                 if (skipEdgeLines && (box.top <= 1 || box.bottom >= bitmap.height - 2)) continue
                 val (bg, fg) = sampleColors(bitmap, box)
-                val info = LineInfo(line.text.trim(), Rect(box), bg, fg)
-                if (group.isNotEmpty() && !fitsGroup(group, info)) {
+                val info = LineInfo(lineText, Rect(box), bg, fg)
+                if (group.isNotEmpty() && !fitsGroup(group, info, strictStyle)) {
                     addGroup(group, separator, blocks)
                     group = ArrayList()
                 }
@@ -69,14 +71,48 @@ object BlockBuilder {
 
     private class LineInfo(val text: String, val rect: Rect, val bg: Int, val fg: Int)
 
-    private fun fitsGroup(group: List<LineInfo>, line: LineInfo): Boolean {
+    private fun fitsGroup(group: List<LineInfo>, line: LineInfo, strictStyle: Boolean): Boolean {
         val avg = group.sumOf { it.rect.height() } / group.size.toFloat()
         val h = line.rect.height().toFloat()
-        if (max(avg, h) / max(1f, min(avg, h)) > 1.3f) return false
-        if (line.rect.top - group.last().rect.bottom > avg * 0.9f) return false
-        if (colorDistance(line.fg, group.first().fg) > 150) return false
-        if (colorDistance(line.bg, group.first().bg) > 90) return false
+        if (max(avg, h) / max(1f, min(avg, h)) > (if (strictStyle) 1.3f else 1.5f)) return false
+        if (line.rect.top - group.last().rect.bottom > avg * (if (strictStyle) 0.9f else 1.2f)) return false
+        if (strictStyle) {
+            if (colorDistance(line.fg, group.first().fg) > 150) return false
+            if (colorDistance(line.bg, group.first().bg) > 90) return false
+        }
         return true
+    }
+
+    /** Times, counters and ticks at the end of a chat line ("… 11:31", "↩ 2 11:33 ✓✓") are not translated. */
+    private val META = Regex("^[\\d:.,/↩↪✓✔√·•+\\-()]+$")
+
+    /**
+     * The line without trailing metadata, and the area of what is left.
+     * null if nothing is left.
+     */
+    private fun withoutTrailingMeta(line: Text.Line, separator: String): Pair<String, Rect>? {
+        val lineBox = line.boundingBox ?: return null
+        val elements = try {
+            line.elements
+        } catch (_: Exception) {
+            emptyList()
+        }
+        if (elements.isEmpty()) return line.text.trim() to Rect(lineBox)
+        var end = elements.size
+        while (end > 0 && META.matches(elements[end - 1].text.trim())) end--
+        if (end == 0) return null
+        if (end == elements.size) return line.text.trim() to Rect(lineBox)
+        val kept = elements.subList(0, end)
+        val rect = Rect()
+        for (e in kept) {
+            val b = e.boundingBox ?: continue
+            if (rect.isEmpty) rect.set(b) else rect.union(b)
+        }
+        if (rect.isEmpty) return line.text.trim() to Rect(lineBox)
+        // Keep the line's full height so font size and position stay right.
+        rect.top = lineBox.top
+        rect.bottom = lineBox.bottom
+        return kept.joinToString(separator) { it.text }.trim() to rect
     }
 
     private fun addGroup(group: List<LineInfo>, separator: String, out: MutableList<TextBlock>) {

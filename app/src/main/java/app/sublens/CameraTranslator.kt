@@ -42,6 +42,9 @@ class CameraTranslator(private val prefs: Prefs) {
     private var recognizer: TextRecognizer? = null
     private var recognizerScript: Script? = null
     private var stickyLang: String? = null
+
+    /** Recent translations: a block the camera reads slightly differently keeps the same translation. */
+    private val recent = ArrayList<Pair<String, String>>()
     private var closed = false
     private var generation = 0
 
@@ -52,6 +55,7 @@ class CameraTranslator(private val prefs: Prefs) {
     fun reset() {
         generation++
         stickyLang = null
+        recent.clear()
     }
 
     fun process(bitmap: Bitmap, onResult: (Result) -> Unit) {
@@ -70,7 +74,7 @@ class CameraTranslator(private val prefs: Prefs) {
                 onResult(Result(emptyList(), qr, null, Status.FAILED))
                 return
             }
-            val blocks = BlockBuilder.build(t, script, bitmap, skipEdgeLines = false)
+            val blocks = BlockBuilder.build(t, script, bitmap, skipEdgeLines = false, strictStyle = false)
             if (blocks.isEmpty()) {
                 onResult(Result(emptyList(), qr, null, Status.NO_TEXT))
                 return
@@ -141,7 +145,21 @@ class CameraTranslator(private val prefs: Prefs) {
         var remaining = blocks.size
         var failed = false
         var slowReported = false
+        val pairKey = "$source>$target|"
+        fun finishOne() {
+            remaining--
+            if (remaining == 0 && !closed && gen == generation) {
+                val items = blocks.mapIndexed { k, blk -> item(blk, results[k] ?: blk.text) }
+                done(items, if (failed && results.all { it == null }) Status.FAILED else Status.OK)
+            }
+        }
         for ((i, b) in blocks.withIndex()) {
+            val known = similarTranslation(pairKey, b.text)
+            if (known != null) {
+                results[i] = known
+                finishOne()
+                continue
+            }
             translator.translate(
                 b.text,
                 source,
@@ -154,15 +172,55 @@ class CameraTranslator(private val prefs: Prefs) {
                 },
                 onDone = { result ->
                     if (result == null) failed = true
+                    if (result != null) remember(pairKey + b.text, result)
                     results[i] = result ?: b.text
-                    remaining--
-                    if (remaining == 0 && !closed && gen == generation) {
-                        val items = blocks.mapIndexed { k, blk -> item(blk, results[k] ?: blk.text) }
-                        done(items, if (failed && results.all { it == null }) Status.FAILED else Status.OK)
-                    }
+                    finishOne()
                 },
             )
         }
+    }
+
+    private fun remember(key: String, translated: String) {
+        recent.removeAll { it.first == key }
+        recent.add(key to translated)
+        while (recent.size > RECENT_MAX) recent.removeAt(0)
+    }
+
+    /** A translation of practically the same text (OCR differs by a few characters between frames). */
+    private fun similarTranslation(pairKey: String, text: String): String? {
+        val a = normalize(text)
+        if (a.length < 4) return null
+        for (i in recent.indices.reversed()) {
+            val (key, value) = recent[i]
+            if (!key.startsWith(pairKey)) continue
+            val b = normalize(key.substring(pairKey.length))
+            if (a == b) return value
+            val longer = maxOf(a.length, b.length)
+            val allowed = maxOf(1, longer / 8)
+            if (kotlin.math.abs(a.length - b.length) <= allowed && distance(a, b, allowed) <= allowed) return value
+        }
+        return null
+    }
+
+    private fun normalize(s: String) = s.lowercase().filter { it.isLetterOrDigit() }
+
+    private fun distance(a: String, b: String, limit: Int): Int {
+        var prev = IntArray(b.length + 1) { it }
+        var curr = IntArray(b.length + 1)
+        for (i in 1..a.length) {
+            curr[0] = i
+            var rowMin = curr[0]
+            for (j in 1..b.length) {
+                val cost = if (a[i - 1] == b[j - 1]) 0 else 1
+                curr[j] = minOf(curr[j - 1] + 1, prev[j] + 1, prev[j - 1] + cost)
+                if (curr[j] < rowMin) rowMin = curr[j]
+            }
+            if (rowMin > limit) return rowMin
+            val t = prev
+            prev = curr
+            curr = t
+        }
+        return prev[b.length]
     }
 
     private fun untranslated(blocks: List<TextBlock>): List<LensItem> = blocks.map { item(it, it.text) }
@@ -205,6 +263,8 @@ class CameraTranslator(private val prefs: Prefs) {
     }
 
     companion object {
+        private const val RECENT_MAX = 300
+
         fun looksLikeUrl(s: String): Boolean {
             val t = s.trim()
             return t.startsWith("http://", ignoreCase = true) || t.startsWith("https://", ignoreCase = true) ||

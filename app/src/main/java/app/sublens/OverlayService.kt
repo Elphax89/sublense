@@ -76,6 +76,11 @@ class OverlayService : Service(), OverlayController.Callbacks, TextPipeline.List
     private var movedAll = false
     private var videoHintShown = false
 
+    /** Chat mode with nothing shown: the newest frame waits here until the picture is still. */
+    private var pendingFrame: android.graphics.Bitmap? = null
+    private var pendingSig: IntArray? = null
+    private var pendingSince = 0L
+
     /** Full re-read requested (display no longer matches the picture). */
     @Volatile
     private var fullRequested = false
@@ -215,12 +220,21 @@ class OverlayService : Service(), OverlayController.Callbacks, TextPipeline.List
                 val mask = lensMask
                 if (lensMode && mask.isNotEmpty()) {
                     // No new frame since the last tick = the screen is still → the last fingerprint stays valid.
+                    val previousTick = prevSig
                     val sig = cap.signature(rect, mask) ?: prevSig
                     val now = SystemClock.uptimeMillis()
                     val gapOk = now - lastHiddenAt >= max(interval, MIN_HIDDEN_GAP_MS)
-                    val previousTick = prevSig
-                    if (sig != null) learnMotion(sig)
-                    if (fullRequested && gapOk) {
+                    val scrolled = sig != null && learnMotion(sig)
+                    if (scrolled && !prefs.videoMode) {
+                        // Everything moves under the translations (scrolling, new message): hide them right away
+                        // instead of leaving them over the wrong text. Reading resumes once the picture is still.
+                        baseline = null
+                        fullRequested = false
+                        main.post {
+                            pipeline?.invalidateShown()
+                            overlay?.clearLens()
+                        }
+                    } else if (fullRequested && gapOk) {
                         fullRequested = false
                         baseline = null
                         movedAll = false
@@ -248,8 +262,7 @@ class OverlayService : Service(), OverlayController.Callbacks, TextPipeline.List
                         if (!prefs.videoMode) maybeHintVideo()
                     }
                 } else {
-                    val bitmap = cap.grab(rect)
-                    if (bitmap != null) send(bitmap, rect)
+                    readWhenSettled(cap, rect)
                 }
             }
             cap.handler.postDelayed(this, interval)
@@ -266,33 +279,83 @@ class OverlayService : Service(), OverlayController.Callbacks, TextPipeline.List
 
     /** Hide the lens, wait until the screen is drawn without it, capture, show it again. */
     /**
-     * Learns where the picture keeps changing from tick to tick (animations). If almost everything
-     * moves at once (scrolling), that is not an animation but a real change.
+     * When nothing of ours is shown in the lens: read the screen once the picture is still
+     * (chat mode), so a scroll doesn't produce translations for half-scrolled text.
+     * Video mode and the bar read every frame right away.
      */
-    private fun learnMotion(sig: IntArray) {
-        val prev = prevSig
-        prevSig = sig
-        if (prev == null || prev.size != sig.size) {
-            heat = FloatArray(sig.size)
+    private fun readWhenSettled(cap: ScreenCapturer, rect: Rect) {
+        val bitmap = cap.grab(rect)
+        if (!lensMode || prefs.videoMode) {
+            dropPending()
+            if (bitmap != null) send(bitmap, rect)
             return
         }
+        if (bitmap == null) {
+            // No new frame: the screen stands still, so the last frame is final.
+            val p = pendingFrame ?: return
+            pendingFrame = null
+            pendingSig = null
+            send(p, rect)
+            return
+        }
+        val now = SystemClock.uptimeMillis()
+        val sig = ScreenCapturer.signatureOf(bitmap)
+        learnMotion(sig)
+        val prev = pendingSig
+        val settled = prev != null && prev.size == sig.size &&
+            ScreenCapturer.changedRegion(prev, sig, bitmap.width, bitmap.height, animatedCells()) == null
+        if (settled || (pendingFrame != null && now - pendingSince > MAX_SETTLE_WAIT_MS)) {
+            dropPending()
+            send(bitmap, rect)
+        } else {
+            if (pendingFrame == null) pendingSince = now
+            pendingFrame?.recycle()
+            pendingFrame = bitmap
+            pendingSig = sig
+        }
+    }
+
+    private fun dropPending() {
+        pendingFrame?.recycle()
+        pendingFrame = null
+        pendingSig = null
+    }
+
+    /**
+     * Learns where the picture keeps changing from tick to tick (animations). Returns true if the whole
+     * picture moved (scrolling, a new message pushing everything up) – that is not an animation but a real change.
+     */
+    private fun learnMotion(sig: IntArray): Boolean {
+        val prev = prevSig
+        prevSig = sig
+        if (prev == null || prev.size != sig.size || prev === sig) {
+            if (prev == null || prev.size != sig.size) heat = FloatArray(sig.size)
+            heat?.let { h -> for (i in h.indices) h[i] *= HEAT_DECAY }
+            return false
+        }
         val h = heat ?: FloatArray(sig.size).also { heat = it }
+        val until = animUntil?.takeIf { it.size == sig.size } ?: LongArray(sig.size).also { animUntil = it }
+        val now = SystemClock.uptimeMillis()
         var valid = 0
         var moved = 0
         for (i in sig.indices) {
-            if (prev[i] < 0 || sig[i] < 0) continue
+            if (prev[i] < 0 || sig[i] < 0 || until[i] > now) continue
             valid++
             if (abs(prev[i] - sig[i]) > ScreenCapturer.CELL_THRESHOLD) moved++
         }
-        val global = valid > 0 && moved * 100 >= valid * GLOBAL_MOVE_PERCENT
-        if (global) movedAll = true
-        val until = animUntil?.takeIf { it.size == sig.size } ?: LongArray(sig.size).also { animUntil = it }
-        val now = SystemClock.uptimeMillis()
+        val global = (valid > 0 && moved * 100 >= valid * GLOBAL_MOVE_PERCENT) || ScreenCapturer.verticalShift(prev, sig) != 0
+        if (global) {
+            // Content moved: what we learned about animations no longer sits in the same place.
+            movedAll = true
+            h.fill(0f)
+            until.fill(0L)
+            return true
+        }
         val cols = ScreenCapturer.SIG_X
         val rows = sig.size / cols
         for (i in sig.indices) {
             h[i] *= HEAT_DECAY
-            if (!global && prev[i] >= 0 && sig[i] >= 0 && abs(prev[i] - sig[i]) > ScreenCapturer.CELL_THRESHOLD) h[i] += 1f
+            if (prev[i] >= 0 && sig[i] >= 0 && abs(prev[i] - sig[i]) > ScreenCapturer.CELL_THRESHOLD) h[i] += 1f
             if (h[i] >= HEAT_ANIMATED) {
                 // Animation: ignore the cell and its neighbours for a while (GIF frames don't change every cell every time).
                 val cx = i % cols
@@ -304,6 +367,7 @@ class OverlayService : Service(), OverlayController.Callbacks, TextPipeline.List
                 }
             }
         }
+        return false
     }
 
     private fun animatedCells(): BooleanArray? {
@@ -520,6 +584,7 @@ class OverlayService : Service(), OverlayController.Callbacks, TextPipeline.List
                 heat = null
                 animUntil = null
                 baseline = null
+                dropPending()
             }
         }
     }
@@ -605,7 +670,9 @@ class OverlayService : Service(), OverlayController.Callbacks, TextPipeline.List
         private const val HEAT_ANIMATED = 1.5f
         private const val VIDEO_HINT_PERCENT = 30
         /** Animated places stay ignored this long, even if they pause briefly. */
-        private const val ANIM_HOLD_MS = 10_000L
+        private const val ANIM_HOLD_MS = 6_000L
+        /** Never wait longer than this for a still picture (something keeps moving that isn't an animation). */
+        private const val MAX_SETTLE_WAIT_MS = 2_500L
         /** … including this many neighbouring cells around them. */
         private const val ANIM_SPREAD = 1
         private const val STALE_MIN_GAP_MS = 3000L

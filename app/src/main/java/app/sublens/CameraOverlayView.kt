@@ -12,6 +12,7 @@ import android.util.AttributeSet
 import android.util.TypedValue
 import android.view.MotionEvent
 import android.view.View
+import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
 
@@ -57,8 +58,17 @@ class CameraOverlayView @JvmOverloads constructor(
     private var drawn: List<Drawn> = emptyList()
     private var dirty = true
 
+    /**
+     * Font size and box width chosen for a translation, in picture pixels. Live frames differ by a few
+     * pixels each time; reusing the earlier choice keeps the line breaks from jumping between 1 and 2 lines.
+     */
+    private class Fitted(val rectW: Float, val rectH: Float, val size: Float, val boxW: Float)
+
+    private val fitted = HashMap<String, Fitted>()
+
     fun show(newItems: List<LensItem>, qr: Rect?, width: Int, height: Int, mode: Fit) {
         if (newItems != items) peeked.clear()
+        if (width != imageW || height != imageH || mode != fit) fitted.clear()
         items = newItems
         qrRect = qr
         imageW = width
@@ -114,22 +124,36 @@ class CameraOverlayView @JvmOverloads constructor(
             map(item.rect, r)
             if (r.right < 0 || r.left > width || r.bottom < 0 || r.top > height) continue
             r.inset(-pad, -pad)
-            var size = max(minPx, item.lineHeightPx * s / 1.2f)
-            textPaint.textSize = size
-            // Longer translation: grow sideways first (up to 1.6 × and the view width), then shrink the text.
-            val lines = max(1, ((item.rect.height() + item.lineHeightPx / 2) / max(1, item.lineHeightPx)))
-            val natural = textPaint.measureText(item.translated) / lines * 1.08f + 2 * pad
-            if (natural > r.width()) {
-                val w = min(natural, min(r.width() * 1.6f, width - 2 * pad))
-                val cx = r.centerX()
-                r.left = (cx - w / 2).coerceIn(pad, max(pad, width - pad - w))
-                r.right = r.left + w
+            val prev = fitted[item.translated]
+            val rw = item.rect.width().toFloat()
+            val rh = item.rect.height().toFloat()
+            val reuse = prev != null && abs(prev.rectW - rw) <= prev.rectW * 0.3f && abs(prev.rectH - rh) <= prev.rectH * 0.35f
+            var size: Float
+            if (reuse && prev != null) {
+                size = max(minPx, prev.size * s)
+                val w = min(prev.boxW * s, width - 2 * pad)
+                r.right = (r.left + w).coerceAtMost(width - pad)
+                r.left = r.right - w
+            } else {
+                size = max(minPx, item.lineHeightPx * s / 1.2f)
+                textPaint.textSize = size
+                // Longer translation: grow to the right first (up to 1.6 × and the view width), then shrink the text.
+                val lines = max(1, ((item.rect.height() + item.lineHeightPx / 2) / max(1, item.lineHeightPx)))
+                val natural = textPaint.measureText(item.translated) / lines * 1.08f + 2 * pad
+                if (natural > r.width()) {
+                    val w = min(natural, min(r.width() * 1.6f, width - 2 * pad))
+                    r.left = r.left.coerceIn(pad, max(pad, width - pad - w))
+                    r.right = r.left + w
+                }
             }
             val avail = max(1, (r.width() - 2 * pad).toInt())
             var l = makeLayout(item.translated, size, avail)
-            while (l.height > r.height() - 2 && size > minPx) {
-                size = max(minPx, size * 0.92f)
-                l = makeLayout(item.translated, size, avail)
+            if (!reuse) {
+                while (l.height > r.height() - 2 && size > minPx) {
+                    size = max(minPx, size * 0.92f)
+                    l = makeLayout(item.translated, size, avail)
+                }
+                fitted[item.translated] = Fitted(rw, rh, size / s, r.width() / s)
             }
             if (l.height > r.height()) r.bottom = r.top + l.height + 2 * pad
             out += Drawn(r, l, i)
