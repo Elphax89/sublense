@@ -16,6 +16,9 @@
     <!-- Für die Overlay-Fenster (Service-Kontext) -->
     <style name="Theme.SubLens.Overlay" />
 
+    <!-- Basis für die SubLens.* Stile -->
+    <style name="SubLens" />
+
     <style name="SubLens.Card">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">wrap_content</item>
