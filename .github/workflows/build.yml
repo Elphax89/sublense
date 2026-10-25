@@ -30,7 +30,13 @@ jobs:
       - name: APK bauen
         run: |
           chmod +x gradlew
-          ./gradlew assembleRelease --stacktrace
+          if ! ./gradlew assembleRelease --console=plain > build.log 2>&1; then
+            cat build.log
+            # Fehler als Annotation, damit sie ohne Log-Download sichtbar sind
+            grep -E "^e: |error:|What went wrong|Could not|FAILED|Exception" build.log | head -25 | while IFS= read -r line; do echo "::error::$line"; done
+            exit 1
+          fi
+          tail -5 build.log
           cp app/build/outputs/apk/release/app-release.apk SubLens.apk
 
       - name: Als neueste Version veröffentlichen
