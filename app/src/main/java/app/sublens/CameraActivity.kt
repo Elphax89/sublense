@@ -174,7 +174,7 @@ class CameraActivity : ComponentActivity() {
         translator.close()
     }
 
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode != REQ_CAMERA) return
         if (grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED) {
