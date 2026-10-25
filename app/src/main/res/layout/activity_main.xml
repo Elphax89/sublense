@@ -53,6 +53,24 @@
             </LinearLayout>
         </LinearLayout>
 
+        <!-- Update-Hinweis -->
+        <LinearLayout
+            android:id="@+id/update_card"
+            style="@style/SubLens.Card"
+            android:layout_marginTop="18dp"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/update_text"
+                style="@style/SubLens.CardTitle" />
+
+            <Button
+                android:id="@+id/btn_update"
+                style="@style/SubLens.ButtonPrimary"
+                android:layout_marginTop="8dp"
+                android:text="@string/update_install" />
+        </LinearLayout>
+
         <!-- Berechtigungen -->
         <LinearLayout style="@style/SubLens.Card"
             android:layout_marginTop="22dp">
@@ -348,5 +366,15 @@
             android:layout_marginTop="20dp"
             android:gravity="center_horizontal"
             android:text="@string/footer" />
+
+        <TextView
+            android:id="@+id/version_line"
+            style="@style/SubLens.Note"
+            android:layout_marginTop="10dp"
+            android:gravity="center_horizontal"
+            android:minHeight="40dp"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:textColor="@color/accent" />
     </LinearLayout>
 </ScrollView>

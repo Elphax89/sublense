@@ -52,6 +52,7 @@ class MainActivity : Activity() {
         setupSpeed()
         setupModels()
         btnStart.setOnClickListener { onStartClicked() }
+        setupUpdates()
 
         if (Build.VERSION.SDK_INT >= 33 && !prefs.askedNotifications && !hasNotificationPermission()) {
             prefs.askedNotifications = true
@@ -65,6 +66,7 @@ class MainActivity : Activity() {
         refreshPermissions()
         refreshStartButton()
         refreshModels()
+        if (!Updater.downloading) Updater.check(this, force = false) { release, _ -> showUpdate(release) }
     }
 
     override fun onPause() {
@@ -122,6 +124,63 @@ class MainActivity : Activity() {
         } else {
             btnStart.setText(R.string.start)
             btnStart.setBackgroundResource(R.drawable.bg_button_primary)
+        }
+    }
+
+    // ---------------------------------------------------------------- Updates
+
+    private fun setupUpdates() {
+        val line = findViewById<TextView>(R.id.version_line)
+        line.text = getString(R.string.version_line, Updater.installedVersionName(this))
+        line.setOnClickListener {
+            line.setText(R.string.update_checking)
+            Updater.check(this, force = true) { release, error ->
+                line.text = getString(R.string.version_line, Updater.installedVersionName(this))
+                when {
+                    error != null -> toast(R.string.update_check_failed)
+                    release == null -> toast(R.string.update_latest)
+                }
+                showUpdate(release)
+            }
+        }
+        findViewById<Button>(R.id.btn_update).setOnClickListener { onUpdateClicked() }
+    }
+
+    private fun showUpdate(release: Updater.Release?) {
+        if (isFinishing || isDestroyed) return
+        val card = findViewById<View>(R.id.update_card)
+        if (release == null) {
+            card.visibility = View.GONE
+            return
+        }
+        card.visibility = View.VISIBLE
+        findViewById<TextView>(R.id.update_text).text = getString(R.string.update_available, release.versionName)
+        card.tag = release
+    }
+
+    private fun onUpdateClicked() {
+        val release = findViewById<View>(R.id.update_card).tag as? Updater.Release ?: return
+        if (!packageManager.canRequestPackageInstalls()) {
+            // Einmalig: SubLens darf Apps installieren (nur für die eigenen Updates).
+            Toast.makeText(this, R.string.update_allow, Toast.LENGTH_LONG).show()
+            startActivity(Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:$packageName")))
+            return
+        }
+        // Laufendes Overlay vorher beenden – die Installation startet die App neu.
+        if (OverlayService.isRunning) {
+            startService(Intent(this, OverlayService::class.java).setAction(OverlayService.ACTION_STOP))
+        }
+        val btn = findViewById<Button>(R.id.btn_update)
+        btn.isEnabled = false
+        btn.text = getString(R.string.update_downloading, 0)
+        Updater.downloadAndInstall(
+            this,
+            release,
+            onProgress = { pct -> btn.text = getString(R.string.update_downloading, pct) },
+        ) { ok ->
+            btn.isEnabled = true
+            btn.setText(R.string.update_install)
+            if (!ok) toast(R.string.update_failed)
         }
     }
 

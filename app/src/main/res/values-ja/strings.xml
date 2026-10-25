@@ -84,4 +84,13 @@
     <string name="script_japanese">日本語</string>
     <string name="script_korean">韓国語</string>
     <string name="script_devanagari">デーヴァナーガリー（ヒンディー語、マラーティー語）</string>
+    <string name="update_available">バージョン %1$s へのアップデートがあります</string>
+    <string name="update_install">今すぐアップデート</string>
+    <string name="update_downloading">ダウンロード中… %1$d%%</string>
+    <string name="update_failed">アップデートに失敗しました。接続を確認して再試行してください。</string>
+    <string name="update_allow">SubLens にアプリのインストールを許可して（自身のアップデートのみ）、もう一度「今すぐアップデート」をタップしてください。</string>
+    <string name="update_latest">最新バージョンです。</string>
+    <string name="update_check_failed">アップデートを確認できませんでした。</string>
+    <string name="update_checking">アップデートを確認中…</string>
+    <string name="version_line">バージョン %1$s · アップデートを確認</string>
 </resources>

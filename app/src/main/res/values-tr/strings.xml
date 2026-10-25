@@ -84,4 +84,13 @@
     <string name="script_japanese">Japonca</string>
     <string name="script_korean">Korece</string>
     <string name="script_devanagari">Devanagari (Hintçe, Marathi)</string>
+    <string name="update_available">%1$s sürümüne güncelleme mevcut</string>
+    <string name="update_install">Şimdi güncelle</string>
+    <string name="update_downloading">İndiriliyor … %%%1$d</string>
+    <string name="update_failed">Güncelleme başarısız. İnterneti kontrol edip tekrar dene.</string>
+    <string name="update_allow">SubLens\'in uygulama yüklemesine izin ver (yalnızca kendi güncellemeleri), sonra tekrar “Şimdi güncelle”ye dokun.</string>
+    <string name="update_latest">En son sürümü kullanıyorsun.</string>
+    <string name="update_check_failed">Güncellemeler kontrol edilemedi.</string>
+    <string name="update_checking">Güncellemeler kontrol ediliyor …</string>
+    <string name="version_line">Sürüm %1$s · Güncellemeleri denetle</string>
 </resources>

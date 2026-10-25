@@ -84,4 +84,13 @@
     <string name="script_japanese">Japonés</string>
     <string name="script_korean">Coreano</string>
     <string name="script_devanagari">Devanagari (hindi, maratí)</string>
+    <string name="update_available">Actualización a la versión %1$s disponible</string>
+    <string name="update_install">Actualizar ahora</string>
+    <string name="update_downloading">Descargando … %1$d %%</string>
+    <string name="update_failed">La actualización falló. Revisa internet e inténtalo de nuevo.</string>
+    <string name="update_allow">Permite que SubLens instale apps (solo sus propias actualizaciones) y vuelve a tocar “Actualizar ahora”.</string>
+    <string name="update_latest">Tienes la versión más reciente.</string>
+    <string name="update_check_failed">No se pudo buscar actualizaciones.</string>
+    <string name="update_checking">Buscando actualizaciones …</string>
+    <string name="version_line">Versión %1$s · Buscar actualizaciones</string>
 </resources>

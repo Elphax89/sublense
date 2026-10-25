@@ -84,4 +84,13 @@
     <string name="script_japanese">Японская</string>
     <string name="script_korean">Корейская</string>
     <string name="script_devanagari">Деванагари (хинди, маратхи)</string>
+    <string name="update_available">Доступно обновление до версии %1$s</string>
+    <string name="update_install">Обновить</string>
+    <string name="update_downloading">Загрузка … %1$d %%</string>
+    <string name="update_failed">Не удалось обновить. Проверьте интернет и повторите.</string>
+    <string name="update_allow">Разрешите SubLens устанавливать приложения (только свои обновления), затем снова нажмите «Обновить».</string>
+    <string name="update_latest">У вас последняя версия.</string>
+    <string name="update_check_failed">Не удалось проверить обновления.</string>
+    <string name="update_checking">Проверка обновлений …</string>
+    <string name="version_line">Версия %1$s · Проверить обновления</string>
 </resources>
