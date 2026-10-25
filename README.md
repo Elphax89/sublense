@@ -18,7 +18,7 @@ Oder über die Download-Seite mit Anleitung: **https://elphax89.github.io/sublen
 
 > **Ist der Schalter grau („Gesteuert durch beschränkte Einstellung“)?** Das ist Androids Schutz für Apps außerhalb des Play Stores. Einmal freischalten: *Einstellungen → Apps → SubLens → ⋮ (oben rechts) → **Eingeschränkte Einstellungen zulassen*** (Handy-Code bestätigen), danach den Schalter „Über anderen Apps anzeigen“ einschalten. [Googles Anleitung](https://support.google.com/android/answer/12623953)
 
-Updates installierst du genauso: Die neue APK einfach über die alte installieren, Einstellungen bleiben erhalten.
+**Updates:** Ab Version 0.2.9 meldet SubLens neue Versionen selbst – oben in der App erscheint „Update verfügbar“, ein Tipp auf *Jetzt aktualisieren* lädt und installiert sie (beim ersten Mal einmal „Apps installieren“ für SubLens erlauben). Unten in der App kannst du mit *Nach Updates suchen* auch selbst prüfen. Einstellungen bleiben erhalten.
 
 ---
 
