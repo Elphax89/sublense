@@ -517,8 +517,8 @@ class OverlayController(
     }
 
     /** Für die Aufnahme kurz ausblenden (true) bzw. wieder zeigen. Gibt zurück, ob etwas ausgeblendet wurde. */
-    fun setLensHiddenForCapture(hidden: Boolean): Boolean {
-        lens.setCaptureHidden(hidden)
+    fun setLensHiddenForCapture(hidden: Boolean, region: Rect? = null): Boolean {
+        lens.setCaptureHidden(hidden, region)
         return lens.hasContent
     }
 

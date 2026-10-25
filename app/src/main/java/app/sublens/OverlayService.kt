@@ -206,9 +206,12 @@ class OverlayService : Service(), OverlayController.Callbacks, TextPipeline.List
                         val now = SystemClock.uptimeMillis()
                         if (base == null || base.size != sig.size) {
                             baseline = sig
-                        } else if (ScreenCapturer.changed(base, sig) && now - lastHiddenAt >= max(interval, MIN_HIDDEN_GAP_MS)) {
-                            baseline = null
-                            startHiddenCapture(cap, rect)
+                        } else if (now - lastHiddenAt >= max(interval, MIN_HIDDEN_GAP_MS)) {
+                            val changed = ScreenCapturer.changedRegion(base, sig, rect.width(), rect.height())
+                            if (changed != null) {
+                                baseline = null
+                                startHiddenCapture(cap, rect, partialRegion(changed, mask, rect))
+                            }
                         }
                     }
                 } else {
@@ -229,11 +232,32 @@ class OverlayService : Service(), OverlayController.Callbacks, TextPipeline.List
     }
 
     /** Linse ausblenden, warten bis das Bild ohne sie gezeichnet ist, aufnehmen, wieder einblenden. */
-    private fun startHiddenCapture(cap: ScreenCapturer, rect: Rect) {
+    /**
+     * Bewegt sich nur ein Teil (GIF, Video), wird nur dort neu gelesen. Der Bereich wird um alle
+     * Übersetzungen erweitert, die ihn berühren, damit keine halb verdeckt bleibt.
+     * null = ganze Linse neu lesen (z. B. gescrollt).
+     */
+    private fun partialRegion(changed: Rect, drawn: List<Rect>, crop: Rect): Rect? {
+        val r = Rect(changed)
+        var grew = true
+        while (grew) {
+            grew = false
+            for (d in drawn) {
+                if (Rect.intersects(d, r) && !r.contains(d)) {
+                    r.union(d)
+                    grew = true
+                }
+            }
+        }
+        val area = r.width().toLong() * r.height()
+        return if (area * 100 > crop.width().toLong() * crop.height() * PARTIAL_MAX_PERCENT) null else r
+    }
+
+    private fun startHiddenCapture(cap: ScreenCapturer, rect: Rect, region: Rect? = null) {
         hiddenCapture = true
         main.post {
             val ov = overlay
-            if (ov == null || !ov.setLensHiddenForCapture(true)) {
+            if (ov == null || !ov.setLensHiddenForCapture(true, region)) {
                 ov?.setLensHiddenForCapture(false)
                 hiddenCapture = false
                 return@post
@@ -243,18 +267,18 @@ class OverlayService : Service(), OverlayController.Callbacks, TextPipeline.List
             chor.postFrameCallback {
                 chor.postFrameCallback {
                     chor.postFrameCallback {
-                        cap.handler.postDelayed({ grabHidden(cap, rect, 0) }, 12)
+                        cap.handler.postDelayed({ grabHidden(cap, rect, 0, region) }, 12)
                     }
                 }
             }
         }
     }
 
-    private fun grabHidden(cap: ScreenCapturer, rect: Rect, attempt: Int) {
+    private fun grabHidden(cap: ScreenCapturer, rect: Rect, attempt: Int, region: Rect?) {
         if (!isRunning) return
         val bitmap = cap.grab(rect)
         if (bitmap == null && attempt < 4) {
-            cap.handler.postDelayed({ grabHidden(cap, rect, attempt + 1) }, 16)
+            cap.handler.postDelayed({ grabHidden(cap, rect, attempt + 1, region) }, 16)
             return
         }
         main.post {
@@ -265,7 +289,7 @@ class OverlayService : Service(), OverlayController.Callbacks, TextPipeline.List
                 val p = pipeline
                 if (p != null) {
                     p.busy = true
-                    p.process(bitmap, rect)
+                    p.process(bitmap, rect, region)
                 } else {
                     bitmap.recycle()
                 }
@@ -457,6 +481,8 @@ class OverlayService : Service(), OverlayController.Callbacks, TextPipeline.List
         private const val FIRST_TICK_DELAY_MS = 600L
         private const val IDLE_AFTER_MS = 2500L
         private const val MIN_HIDDEN_GAP_MS = 600L
+        /** Bewegt sich mehr als so viel Prozent der Linse, wird alles neu gelesen. */
+        private const val PARTIAL_MAX_PERCENT = 55L
 
         @Volatile
         var isRunning = false

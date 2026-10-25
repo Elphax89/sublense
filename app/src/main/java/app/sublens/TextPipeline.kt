@@ -56,7 +56,13 @@ class TextPipeline(
         val foreground: Int,
     )
 
-    private class Frame(val blocks: List<Block>, val crop: Rect, val combined: String)
+    /** [region]: nur dieser Teil des Ausschnitts wurde neu gelesen (Rest bleibt wie angezeigt). */
+    private class Frame(val blocks: List<Block>, val crop: Rect, val combined: String, val region: Rect? = null)
+
+    /** Zuletzt gelieferte Blöcke und Sprache – für Teil-Aktualisierungen. */
+    private var lastDelivered: List<LensItem> = emptyList()
+    private var lastDeliveredCrop: Rect? = null
+    private var lastSource: String? = null
 
     private val appContext = context.applicationContext
 
@@ -92,7 +98,11 @@ class TextPipeline(
 
     // ---------------------------------------------------------------- OCR
 
-    fun process(bitmap: Bitmap, crop: Rect) {
+    /**
+     * Liest [bitmap]. Ist [region] gesetzt, werden nur Blöcke darin neu übersetzt; alle anderen
+     * bleiben genau so stehen wie zuletzt (kein Zucken, wenn sich nur z. B. ein GIF bewegt).
+     */
+    fun process(bitmap: Bitmap, crop: Rect, region: Rect? = null) {
         if (closed) {
             bitmap.recycle()
             busy = false
@@ -102,7 +112,7 @@ class TextPipeline(
         val script = Languages.scriptFor(prefs.sourceLang) ?: prefs.autoScript
         val rec = recognizerFor(script)
         rec.process(InputImage.fromBitmap(bitmap, 0))
-            .addOnSuccessListener { text -> if (!closed) onText(buildFrame(text, script, bitmap, crop)) }
+            .addOnSuccessListener { text -> if (!closed) onText(restrict(buildFrame(text, script, bitmap, crop), region)) }
             .addOnFailureListener { e -> if (!closed) onOcrError(e) }
             .addOnCompleteListener {
                 bitmap.recycle()
@@ -246,7 +256,27 @@ class TextPipeline(
 
     // ---------------------------------------------------------------- Text → Übersetzung
 
+    /** Nur Blöcke im neu gelesenen Bereich behalten (die anderen zeigen gerade unsere eigene Übersetzung). */
+    private fun restrict(frame: Frame, region: Rect?): Frame {
+        if (region == null || lastDeliveredCrop != frame.crop || lastDelivered.isEmpty()) return frame
+        val blocks = frame.blocks.filter { Rect.intersects(it.rect, region) }
+        return Frame(blocks, frame.crop, blocks.joinToString("\n") { it.text }, Rect(region))
+    }
+
+    /** Alte Blöcke außerhalb des neu gelesenen Bereichs. */
+    private fun keptOutside(frame: Frame): List<LensItem> {
+        val region = frame.region ?: return emptyList()
+        if (lastDeliveredCrop != frame.crop) return emptyList()
+        return lastDelivered.filter { !Rect.intersects(it.rect, region) }
+    }
+
     private fun onText(frame: Frame) {
+        if (frame.blocks.isEmpty() && frame.region != null) {
+            // Im bewegten Bereich steht kein Text (mehr) – Rest unverändert lassen.
+            val kept = keptOutside(frame)
+            if (kept.size != lastDelivered.size) publish(kept, frame.crop, lastSource)
+            return
+        }
         if (frame.blocks.isEmpty()) {
             last = null
             listener.onNoText()
@@ -397,7 +427,7 @@ class TextPipeline(
     private fun deliver(frame: Frame, translations: List<String>, source: String?, gen: Int) {
         if (gen != generation) return
         if (!closed) {
-            val items = frame.blocks.mapIndexed { i, b ->
+            val fresh = frame.blocks.mapIndexed { i, b ->
                 LensItem(
                     rect = Rect(b.rect),
                     original = b.text,
@@ -407,14 +437,21 @@ class TextPipeline(
                     lineHeightPx = b.lineHeight,
                 )
             }
-            shownTranslations = items
-                .filter { normalize(it.translated) != normalize(it.original) }
-                .map { normalize(it.translated) }
-                .filter { it.length >= 4 }
-                .toSet()
-            listener.onResult(items, frame.crop, source)
+            publish(keptOutside(frame) + fresh, frame.crop, source)
         }
         finish(gen)
+    }
+
+    private fun publish(items: List<LensItem>, crop: Rect, source: String?) {
+        lastDelivered = items
+        lastDeliveredCrop = Rect(crop)
+        if (source != null) lastSource = source
+        shownTranslations = items
+            .filter { normalize(it.translated) != normalize(it.original) }
+            .map { normalize(it.translated) }
+            .filter { it.length >= 4 }
+            .toSet()
+        listener.onResult(items, crop, source ?: lastSource)
     }
 
     private fun finish(gen: Int) {
@@ -452,6 +489,8 @@ class TextPipeline(
         last = null
         lastSettings = ""
         shownTranslations = emptySet()
+        lastDelivered = emptyList()
+        lastDeliveredCrop = null
         if (prefs.sourceLang != Languages.AUTO) stickyLang = null
     }
 

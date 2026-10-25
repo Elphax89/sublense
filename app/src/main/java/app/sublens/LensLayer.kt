@@ -40,6 +40,8 @@ class LensLayer(
     private var used = 0
 
     private var captureHidden = false
+    /** Nur Blöcke, die diesen Bereich (Ausschnitt-Koordinaten) berühren, werden zum Aufnehmen ausgeblendet. null = alle. */
+    private var captureRegion: Rect? = null
     private var peekHidden = false
 
     /** Original wird gerade gezeigt (true) oder wieder die Übersetzung (false). */
@@ -120,9 +122,10 @@ class LensLayer(
     }
 
     /** Kurz ausblenden, damit die Bildschirmfreigabe das Original sieht. */
-    fun setCaptureHidden(hidden: Boolean) {
-        if (captureHidden == hidden) return
+    fun setCaptureHidden(hidden: Boolean, region: Rect? = null) {
+        if (captureHidden == hidden && captureRegion == region) return
         captureHidden = hidden
+        captureRegion = if (hidden) region else null
         applyVisibility()
     }
 
@@ -148,8 +151,11 @@ class LensLayer(
     }
 
     private fun applyVisibility() {
-        val v = if (captureHidden || peekHidden) View.INVISIBLE else View.VISIBLE
-        for (i in 0 until min(used, boxes.size)) boxes[i].visibility = v
+        val region = captureRegion
+        for (i in 0 until min(used, boxes.size)) {
+            val capHide = captureHidden && (region == null || drawnRects.getOrNull(i)?.let { Rect.intersects(it, region) } != false)
+            boxes[i].visibility = if (capHide || peekHidden) View.INVISIBLE else View.VISIBLE
+        }
     }
 
     private fun removeBox(b: BoxView) {
