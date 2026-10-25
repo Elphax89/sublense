@@ -101,4 +101,7 @@
     <string name="models_pick">Baixar um pacote de idioma</string>
     <string name="models_download">Baixar</string>
     <string name="models_installed_mark">%1$s ✓</string>
+    <string name="cd_swap">Trocar a linha de resposta para cima/baixo da lente</string>
+    <string name="swap_no_room_above">Sem espaço acima da lente – mova a lente para baixo primeiro</string>
+    <string name="swap_no_room_below">Sem espaço abaixo da lente – mova a lente para cima primeiro</string>
 </resources>

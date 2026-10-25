@@ -101,4 +101,7 @@
     <string name="models_pick">言語パックをダウンロード</string>
     <string name="models_download">ダウンロード</string>
     <string name="models_installed_mark">%1$s ✓</string>
+    <string name="cd_swap">返信欄をレンズの上／下に切り替え</string>
+    <string name="swap_no_room_above">レンズの上に空きがありません。先にレンズを下へ動かしてください</string>
+    <string name="swap_no_room_below">レンズの下に空きがありません。先にレンズを上へ動かしてください</string>
 </resources>

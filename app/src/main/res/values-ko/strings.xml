@@ -101,4 +101,7 @@
     <string name="models_pick">언어 팩 다운로드</string>
     <string name="models_download">다운로드</string>
     <string name="models_installed_mark">%1$s ✓</string>
+    <string name="cd_swap">답장 줄을 렌즈 위/아래로 바꾸기</string>
+    <string name="swap_no_room_above">렌즈 위에 공간이 없습니다. 먼저 렌즈를 아래로 옮기세요</string>
+    <string name="swap_no_room_below">렌즈 아래에 공간이 없습니다. 먼저 렌즈를 위로 옮기세요</string>
 </resources>

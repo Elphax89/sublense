@@ -101,4 +101,7 @@
     <string name="models_pick">Sprachpaket herunterladen</string>
     <string name="models_download">Laden</string>
     <string name="models_installed_mark">%1$s ✓</string>
+    <string name="cd_swap">Antwortzeile über/unter die Linse tauschen</string>
+    <string name="swap_no_room_above">Über der Linse ist kein Platz – Linse zuerst nach unten ziehen</string>
+    <string name="swap_no_room_below">Unter der Linse ist kein Platz – Linse zuerst nach oben ziehen</string>
 </resources>

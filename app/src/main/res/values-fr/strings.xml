@@ -101,4 +101,7 @@
     <string name="models_pick">Télécharger un pack de langue</string>
     <string name="models_download">Télécharger</string>
     <string name="models_installed_mark">%1$s ✓</string>
+    <string name="cd_swap">Placer la ligne de réponse au-dessus/en dessous de la loupe</string>
+    <string name="swap_no_room_above">Pas assez de place au-dessus de la loupe – descendez-la d’abord</string>
+    <string name="swap_no_room_below">Pas assez de place sous la loupe – remontez-la d’abord</string>
 </resources>

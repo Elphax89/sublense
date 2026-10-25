@@ -30,6 +30,11 @@ class Prefs(context: Context) {
         get() = sp.getBoolean(K_BAR_ABOVE, false)
         set(value) = sp.edit().putBoolean(K_BAR_ABOVE, value).apply()
 
+    /** Antwortzeile über statt unter der Linse. */
+    var composerAbove: Boolean
+        get() = sp.getBoolean(K_COMPOSER_ABOVE, false)
+        set(value) = sp.edit().putBoolean(K_COMPOSER_ABOVE, value).apply()
+
     var intervalMs: Long
         get() = sp.getLong(K_INTERVAL, 500L)
         set(value) = sp.edit().putLong(K_INTERVAL, value).apply()
@@ -78,7 +83,7 @@ class Prefs(context: Context) {
     companion object {
         const val NAME = "sublens"
         const val MIN_HEIGHT_FRACTION = 0.2f
-        const val MAX_HEIGHT_FRACTION = 0.6f
+        const val MAX_HEIGHT_FRACTION = 0.95f
 
         const val K_SOURCE = "source_lang"
         const val K_TARGET = "target_lang"
@@ -91,6 +96,7 @@ class Prefs(context: Context) {
         const val K_WIFI_ONLY = "wifi_only"
         const val K_ASKED_NOTIF = "asked_notifications"
         const val K_COMPOSER = "composer_enabled"
+        const val K_COMPOSER_ABOVE = "composer_above"
         const val K_REPLY = "reply_lang"
         private const val K_TOP_PORT = "frame_top_port"
         private const val K_TOP_LAND = "frame_top_land"

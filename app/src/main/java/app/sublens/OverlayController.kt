@@ -121,6 +121,7 @@ class OverlayController(
     init {
         controlsView.findViewById<ImageButton>(R.id.btn_close).setOnClickListener { callbacks.onCloseRequested() }
         controlsView.findViewById<ImageButton>(R.id.btn_settings).setOnClickListener { togglePanel() }
+        controlsView.findViewById<ImageButton>(R.id.btn_swap).setOnClickListener { swapComposer() }
         // Die Leiste (nur im Leisten-Modus) zeigt nur noch Text – Bedienung sitzt am Rahmen.
         barView.findViewById<View>(R.id.btn_close).visibility = View.GONE
         barView.findViewById<View>(R.id.btn_settings).visibility = View.GONE
@@ -226,33 +227,74 @@ class OverlayController(
     }
 
     private fun minFrameHeight(): Int = (screenH * Prefs.MIN_HEIGHT_FRACTION).roundToInt()
-    private fun maxFrameHeight(): Int = max(minFrameHeight(), (screenH * Prefs.MAX_HEIGHT_FRACTION).roundToInt())
+
+    private fun barHeight(): Int = if (barAttached) barView.height.takeIf { it > 0 } ?: dp(60f) else 0
+    private fun composerHeight(): Int =
+        if (composer.attached) composer.stableHeight.takeIf { it > 0 } ?: dp(80f) else 0
+
+    /** Platz über/unter der Linse, den Leiste und Antwortzeile brauchen (ohne bzw. mit Antwortzeile). */
+    private fun reserveTop(withComposer: Boolean = true): Int =
+        (if (barAttached && prefs.barAbove) barHeight() else 0) +
+            (if (withComposer && prefs.composerAbove) composerHeight() else 0)
+
+    private fun reserveBottom(withComposer: Boolean = true): Int =
+        (if (barAttached && !prefs.barAbove) barHeight() else 0) +
+            (if (withComposer && !prefs.composerAbove) composerHeight() else 0)
+
+    /** So hoch, wie der Bildschirm neben Leiste und Antwortzeile hergibt. */
+    private fun maxFrameHeight(): Int = max(minFrameHeight(), screenH - reserveTop() - reserveBottom())
+
+    /** Passt die Antwortzeile auf die andere Seite der Linse, ohne aus dem Bild zu rutschen? */
+    private fun canSwapComposer(): Boolean {
+        if (!composer.attached) return false
+        val need = composerHeight()
+        return if (prefs.composerAbove) {
+            screenH - (frameTop + frameH) - reserveBottom(withComposer = false) >= need
+        } else {
+            frameTop - reserveTop(withComposer = false) >= need
+        }
+    }
+
+    private fun swapComposer() {
+        if (!canSwapComposer()) {
+            toast(ctx.getString(if (prefs.composerAbove) R.string.swap_no_room_below else R.string.swap_no_room_above))
+            return
+        }
+        composer.stopEditing()
+        prefs.composerAbove = !prefs.composerAbove
+        layoutAll()
+    }
+
+    private fun toast(message: String) {
+        Toast.makeText(ctx, message, Toast.LENGTH_SHORT).show()
+    }
 
     /**
      * Ordnet alles an. Von oben nach unten:
-     *  [Griff oben]  – auf der Oberkante, ändert die Höhe nach oben
-     *  [Linse]
-     *  [Verschieben ↕ links · Griff unten Mitte · ⚙ ✕ rechts] – auf der Unterkante
+     *  ([Antwortzeile] – wenn nach oben getauscht)
      *  ([Textleiste] – nur im Leisten-Modus, wahlweise oben)
-     *  [Antwortzeile]
+     *  [Linse] mit Griff oben (innen an der Oberkante) und unten
+     *          [Verschieben ↕ links · Griff unten Mitte · ⇅ ⚙ ✕ rechts] innen an der Unterkante
+     *  ([Textleiste] unten)
+     *  [Antwortzeile] – direkt an der Linse, ohne Lücke
      */
     private fun layoutAll() {
         if (screenW <= 0 || screenH <= 0) return
         val tabH = dp(HANDLE_H_DP)
         val tabW = dp(HANDLE_W_DP)
         val ctlH = dp(CONTROL_DP)
-        val topOut = tabH / 2
-        val bottomOut = ctlH / 2
+        val inset = dp(INNER_DP)
         val barShown = barAttached
-        val barH = if (barShown) barView.height.takeIf { it > 0 } ?: dp(60f) else 0
-        val above = barShown && prefs.barAbove
-        val composerH = if (composer.attached) composer.stableHeight.takeIf { it > 0 } ?: dp(80f) else 0
+        val barH = barHeight()
+        val barAbove = barShown && prefs.barAbove
+        val composerH = composerHeight()
+        val composerAbove = prefs.composerAbove
 
+        val resTop = reserveTop()
+        val resBottom = reserveBottom()
         frameH = frameH.coerceIn(minFrameHeight(), maxFrameHeight())
-        val reserveTop = topOut + (if (above) barH else 0)
-        val reserveBottom = bottomOut + (if (barShown && !above) barH else 0) + composerH
-        val maxTop = max(reserveTop, screenH - frameH - reserveBottom)
-        frameTop = frameTop.coerceIn(reserveTop, maxTop)
+        val maxTop = max(resTop, screenH - frameH - resBottom)
+        frameTop = frameTop.coerceIn(resTop, maxTop)
         val frameBottom = frameTop + frameH
 
         frameParams.x = 0
@@ -263,27 +305,32 @@ class OverlayController(
         topHandleParams.width = tabW
         topHandleParams.height = tabH
         topHandleParams.x = (screenW - tabW) / 2
-        topHandleParams.y = frameTop - topOut
+        topHandleParams.y = frameTop + inset
 
         bottomHandleParams.width = tabW
         bottomHandleParams.height = tabH
         bottomHandleParams.x = (screenW - tabW) / 2
-        bottomHandleParams.y = frameBottom - tabH / 2
+        bottomHandleParams.y = frameBottom - inset - tabH
 
         moveParams.width = ctlH
         moveParams.height = ctlH
         moveParams.x = dp(EDGE_DP)
-        moveParams.y = frameBottom - bottomOut
+        moveParams.y = frameBottom - inset - ctlH
 
         controlsParams.width = WindowManager.LayoutParams.WRAP_CONTENT
         controlsParams.height = ctlH
         controlsParams.x = dp(EDGE_DP)
-        controlsParams.y = frameBottom - bottomOut
+        controlsParams.y = frameBottom - inset - ctlH
 
         barParams.x = 0
         barParams.width = screenW
         barParams.height = WindowManager.LayoutParams.WRAP_CONTENT
-        barParams.y = if (above) frameTop - topOut - barH else frameBottom + bottomOut
+        barParams.y = if (barAbove) frameTop - barH else frameBottom
+
+        controlsView.findViewById<View>(R.id.btn_swap).apply {
+            visibility = if (composer.attached) View.VISIBLE else View.GONE
+            alpha = if (canSwapComposer()) 1f else 0.35f
+        }
 
         if (attached) {
             update(frameView, frameParams)
@@ -293,7 +340,12 @@ class OverlayController(
             update(controlsView, controlsParams)
             if (barAttached) update(barView, barParams)
         }
-        composer.place(frameBottom + bottomOut + (if (barShown && !above) barH else 0), screenW)
+        val composerY = if (composerAbove) {
+            frameTop - (if (barAbove) barH else 0) - composerH
+        } else {
+            frameBottom + (if (barShown && !barAbove) barH else 0)
+        }
+        composer.place(composerY, screenW)
         publishCrop()
     }
 
@@ -319,8 +371,8 @@ class OverlayController(
     }
 
     /** Oberer und unterer Rand, an dem Griffe und Knöpfe liegen – dort wird kein Text gelesen. */
-    private fun cropTopInset(): Int = max(frameView.insetPx, dp(HANDLE_H_DP) / 2 + dp(2f))
-    private fun cropBottomInset(): Int = max(frameView.insetPx, dp(CONTROL_DP) / 2 + dp(2f))
+    private fun cropTopInset(): Int = max(frameView.insetPx, dp(INNER_DP + HANDLE_H_DP + 2f))
+    private fun cropBottomInset(): Int = max(frameView.insetPx, dp(INNER_DP + CONTROL_DP + 2f))
 
     /** Bereich, in dem Text gelesen wird: das Rahmen-Innere ohne Rahmen, Griffe und Knöpfe. */
     private fun publishCrop() {
@@ -367,10 +419,15 @@ class OverlayController(
                     if (dragging) {
                         when (mode) {
                             Drag.MOVE -> frameTop = startTop + dy
-                            Drag.BOTTOM_EDGE -> frameH = (startH + dy).coerceIn(minFrameHeight(), maxFrameHeight())
+                            // Die jeweils andere Kante bleibt stehen; wachsen nur bis zum Platz für Leiste/Antwortzeile.
+                            Drag.BOTTOM_EDGE -> {
+                                val limit = max(minFrameHeight(), screenH - reserveBottom() - startTop)
+                                frameH = (startH + dy).coerceIn(minFrameHeight(), limit)
+                            }
                             Drag.TOP_EDGE -> {
                                 val bottom = startTop + startH
-                                frameH = (startH - dy).coerceIn(minFrameHeight(), maxFrameHeight())
+                                val limit = max(minFrameHeight(), bottom - reserveTop())
+                                frameH = (startH - dy).coerceIn(minFrameHeight(), limit)
                                 frameTop = bottom - frameH
                             }
                         }
@@ -675,9 +732,11 @@ class OverlayController(
     }
 
     companion object {
-        private const val HANDLE_W_DP = 64f
-        private const val HANDLE_H_DP = 22f
-        private const val CONTROL_DP = 40f
-        private const val EDGE_DP = 12f
+        private const val HANDLE_W_DP = 34f
+        private const val HANDLE_H_DP = 12f
+        private const val CONTROL_DP = 22f
+        private const val EDGE_DP = 8f
+        /** Abstand von Griffen und Knöpfen zur Fensterkante (sie sitzen innen am Rahmen). */
+        private const val INNER_DP = 5f
     }
 }

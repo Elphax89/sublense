@@ -29,7 +29,7 @@ Download page with instructions: **https://elphax89.github.io/sublense/**
 - 💬 **Subtitles, chats, any text.** Works on top of YouTube, Telegram, WeChat, websites, games and other apps.
 - ✍️ **Reply line.** Type in your own language and tap copy. The translation into the chat's language is on your clipboard, ready to paste.
 - 👁️ **Preview.** Shows the original text until you tap it again. Tapping a single translation shows its original for 3 seconds.
-- 🔲 **A lens you can move and resize.** Always full screen width, in portrait and landscape. Drag the top or bottom handle to change the height (at least 1/5 of the screen), drag the ↕ button to move it. ⚙ and ✕ sit on the bottom right corner.
+- 🔲 **A lens you can move and resize.** Always full screen width, in portrait and landscape. Drag the top or bottom handle to change the height (from 1/5 of the screen up to nearly all of it), drag the ↕ button to move it. ⇅ ⚙ ✕ sit in the bottom right corner; ⇅ moves the reply line above or below the lens when there is room.
 - 🌍 **50+ languages** with automatic detection. Chinese is shown in traditional characters.
 - 📴 **Offline.** Text recognition, language detection and translation run on the phone (Google ML Kit). Each language pack downloads once (about 30 MB), and you can download any pack by hand, for example before a trip.
 - 🔒 **Private.** No server, no account. Screen frames only live briefly in memory and are never saved.

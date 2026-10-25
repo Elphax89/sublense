@@ -101,4 +101,7 @@
     <string name="models_pick">Pobierz pakiet językowy</string>
     <string name="models_download">Pobierz</string>
     <string name="models_installed_mark">%1$s ✓</string>
+    <string name="cd_swap">Przenieś pole odpowiedzi nad/pod soczewkę</string>
+    <string name="swap_no_room_above">Brak miejsca nad soczewką – najpierw przesuń ją w dół</string>
+    <string name="swap_no_room_below">Brak miejsca pod soczewką – najpierw przesuń ją w górę</string>
 </resources>
