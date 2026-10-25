@@ -31,11 +31,11 @@ Download page with instructions: **https://elphax89.github.io/sublense/**
 - 🎬 **Chat mode and video mode.** In chat mode (default) SubLens ignores GIFs, animated emojis and profile pictures, so translations stay perfectly still. Tap ▶ on the lens for video mode: moving pictures are read continuously so subtitles keep up.
 - 👁️ **Preview.** Shows the original text until you tap it again. Tapping a single translation shows its original for 3 seconds.
 - 🔲 **A lens you can move and resize.** Always full screen width, in portrait and landscape. Drag the top or bottom handle to change the height (from 1/5 of the screen up to nearly all of it), drag the ↕ button to move it. ▶ ⇅ ⚙ ✕ sit in the bottom right corner; ⇅ moves the reply line above or below the lens when there is room.
-- 🌍 **50+ languages** with automatic detection, and a ⇅ button to swap From and To. Chinese is shown in traditional characters.
+- 🌍 **50+ languages** with automatic detection, and a ⇅ button to swap From and To. Chinese in traditional or simplified characters, and SubLens converts directly between the two.
 - 🎨 **Your lens colour.** Pick one of nine colours for the frame and handles.
 - 📴 **Offline.** Text recognition, language detection and translation run on the phone (Google ML Kit). Each language pack downloads once (about 30 MB), and you can download any pack by hand, for example before a trip.
 - 🔒 **Private.** No server, no account. Screen frames only live briefly in memory and are never saved.
-- 🌐 **The app speaks your phone's language:** English, German, Spanish, French, Italian, Portuguese, Polish, Turkish, Russian, Chinese, Japanese and Korean.
+- 🌐 **The app speaks your phone's language:** English, German, Spanish, French, Italian, Portuguese, Polish, Turkish, Russian, Chinese (simplified and traditional), Japanese and Korean.
 
 ## How to use it
 
@@ -63,7 +63,7 @@ Android asks for screen sharing every time SubLens starts. Choose **Entire scree
 - **Brief flicker.** When something changes under the lens, SubLens hides the affected translations for a split second to read the screen again. Only the part that moved is re-read; everything else stays still. In video mode this happens about every 0.6 s over a playing video. If that bothers you, show the translation in the bar instead.
 - **Protected apps.** Netflix, Disney+ and banking apps block screen sharing, so SubLens sees nothing there.
 - **Scripts.** Text recognition reads Latin, Chinese, Japanese, Korean and Devanagari script. Cyrillic, Arabic, Greek, Hebrew and Thai work as target languages only.
-- **Traditional Chinese** output needs Android 10 or newer; older phones get simplified characters.
+- **Traditional Chinese** output and telling traditional from simplified text need Android 10 or newer; older phones get simplified characters.
 - Text recognition runs through Google Play services and downloads its model once on first start.
 
 ---

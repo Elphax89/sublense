@@ -22,6 +22,15 @@ enum class Script(val key: String, val labelRes: Int) {
 object Languages {
     const val AUTO = "auto"
 
+    /** Simplified Chinese. Plain "zh" stands for traditional Chinese (see ChineseScript). */
+    const val ZH_HANS = "zh-Hans"
+
+    /** The ML Kit language for one of our tags (both Chinese variants use the "zh" pack). */
+    fun mlkit(tag: String): String = if (tag == ZH_HANS) "zh" else tag
+
+    /** Both tags use the same translation pack (e.g. traditional and simplified Chinese). */
+    fun samePack(a: String, b: String): Boolean = mlkit(a) == mlkit(b)
+
     /** Display name for "Detect automatically" in the phone's language – set from resources at startup. */
     @Volatile
     var autoLabel = "Auto"
@@ -34,7 +43,7 @@ object Languages {
 
     /** All languages that can be translated into, sorted by display name. */
     fun targets(): List<String> =
-        TranslateLanguage.getAllLanguages().sortedBy { displayName(it).lowercase(Locale.getDefault()) }
+        (TranslateLanguage.getAllLanguages() + ZH_HANS).sortedBy { displayName(it).lowercase(Locale.getDefault()) }
 
     /** Source languages: Auto + everything text recognition can read. */
     fun sources(): List<String> = listOf(AUTO) + targets().filter { it !in NO_OCR }
@@ -42,8 +51,8 @@ object Languages {
     fun displayName(tag: String): String {
         if (tag == AUTO) return autoLabel
         // Chinese is shown in traditional characters (see ChineseScript).
-        if (tag == "zh") {
-            val n = Locale.forLanguageTag("zh-Hant").getDisplayName(Locale.getDefault())
+        if (tag == "zh" || tag == ZH_HANS) {
+            val n = Locale.forLanguageTag(if (tag == ZH_HANS) "zh-Hans" else "zh-Hant").getDisplayName(Locale.getDefault())
             if (n.isNotBlank()) return n.replaceFirstChar { it.titlecase(Locale.getDefault()) }
         }
         val name = Locale.forLanguageTag(tag).getDisplayLanguage(Locale.getDefault())
@@ -51,12 +60,26 @@ object Languages {
         return name.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
     }
 
-    fun shortCode(tag: String): String = if (tag == AUTO) "AUTO" else tag.uppercase(Locale.ROOT)
+    fun shortCode(tag: String): String = when (tag) {
+        AUTO -> "AUTO"
+        "zh" -> "ZH繁"
+        ZH_HANS -> "ZH简"
+        else -> tag.uppercase(Locale.ROOT)
+    }
+
+    /** Name of a downloaded translation pack ("zh" covers both Chinese variants). */
+    fun packName(mlkitTag: String): String =
+        if (mlkitTag == "zh") {
+            Locale.forLanguageTag("zh").getDisplayLanguage(Locale.getDefault())
+                .replaceFirstChar { it.titlecase(Locale.getDefault()) }
+        } else {
+            displayName(mlkitTag)
+        }
 
     /** Which text recognizer fits a fixed source language (null = Auto). */
     fun scriptFor(tag: String): Script? = when (tag) {
         AUTO -> null
-        "zh" -> Script.CHINESE
+        "zh", ZH_HANS -> Script.CHINESE
         "ja" -> Script.JAPANESE
         "ko" -> Script.KOREAN
         "hi", "mr" -> Script.DEVANAGARI
@@ -64,12 +87,25 @@ object Languages {
     }
 
     /** Phone language if translatable, otherwise English. */
-    fun defaultTarget(): String =
-        TranslateLanguage.fromLanguageTag(Locale.getDefault().language) ?: TranslateLanguage.ENGLISH
+    fun defaultTarget(): String {
+        val locale = Locale.getDefault()
+        if (locale.language == "zh") {
+            val simplified = locale.script == "Hans" ||
+                (locale.script.isEmpty() && locale.country in setOf("CN", "SG", "MY"))
+            return if (simplified) ZH_HANS else "zh"
+        }
+        return TranslateLanguage.fromLanguageTag(locale.language) ?: TranslateLanguage.ENGLISH
+    }
 
     /** Map a language-identification result to a translatable language (null = unknown). */
     fun normalizeDetected(tag: String?): String? {
         if (tag == null || tag == "und" || tag.contains("-Latn", ignoreCase = true)) return null
         return TranslateLanguage.fromLanguageTag(tag.substringBefore('-'))
+    }
+
+    /** Like [normalizeDetected], but tells simplified from traditional Chinese by looking at [text]. */
+    fun detectedFor(tag: String?, text: String): String? {
+        val lang = normalizeDetected(tag) ?: return null
+        return if (lang == "zh") ChineseScript.variantOf(text) ?: lang else lang
     }
 }

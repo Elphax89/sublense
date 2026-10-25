@@ -2,7 +2,6 @@ package app.sublens
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.Color
 import android.graphics.Rect
 import android.util.Log
 import com.google.mlkit.common.MlKitException
@@ -18,12 +17,6 @@ import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.Text
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.TextRecognizer
-import com.google.mlkit.vision.text.TextRecognizerOptionsInterface
-import com.google.mlkit.vision.text.chinese.ChineseTextRecognizerOptions
-import com.google.mlkit.vision.text.devanagari.DevanagariTextRecognizerOptions
-import com.google.mlkit.vision.text.japanese.JapaneseTextRecognizerOptions
-import com.google.mlkit.vision.text.korean.KoreanTextRecognizerOptions
-import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
@@ -50,17 +43,9 @@ class TextPipeline(
         fun onStatus(message: String)
     }
 
-    /** A recognised text block. */
-    private class Block(
-        val text: String,
-        val rect: Rect,
-        val lineHeight: Int,
-        val background: Int,
-        val foreground: Int,
-    )
 
     /** [region]: only this part of the crop was re-read (the rest stays as displayed). */
-    private class Frame(val blocks: List<Block>, val crop: Rect, val combined: String, val region: Rect? = null)
+    private class Frame(val blocks: List<TextBlock>, val crop: Rect, val combined: String, val region: Rect? = null)
 
     /** Last delivered blocks and language – for partial updates. */
     private var lastDelivered: List<LensItem> = emptyList()
@@ -130,72 +115,15 @@ class TextPipeline(
             if (recognizerScript == script) return it
             it.close()
         }
-        val options: TextRecognizerOptionsInterface = when (script) {
-            Script.LATIN -> TextRecognizerOptions.DEFAULT_OPTIONS
-            Script.CHINESE -> ChineseTextRecognizerOptions.Builder().build()
-            Script.JAPANESE -> JapaneseTextRecognizerOptions.Builder().build()
-            Script.KOREAN -> KoreanTextRecognizerOptions.Builder().build()
-            Script.DEVANAGARI -> DevanagariTextRecognizerOptions.Builder().build()
-        }
-        return TextRecognition.getClient(options).also {
+        return TextRecognition.getClient(BlockBuilder.options(script)).also {
             recognizer = it
             recognizerScript = script
         }
     }
 
-    /**
-     * Lines of a block are joined into one sentence; blocks (paragraphs, speakers,
-     * chat messages) stay separate. Lines without letters (times, symbols) are dropped.
-     */
     private fun buildFrame(text: Text, script: Script, bitmap: Bitmap, crop: Rect): Frame {
-        val separator = if (script.joinsWithoutSpace) "" else " "
-        val blocks = ArrayList<Block>()
-        for (block in text.textBlocks) {
-            // An ML Kit block can contain a name (coloured, different size), a quote and the message.
-            // Only join lines when font size, colours and spacing match –
-            // otherwise each part gets its own box with its own font size.
-            var group = ArrayList<LineInfo>()
-            for (line in block.lines) {
-                if (line.text.count { ch -> ch.isLetter() } < 2) continue
-                val box = line.boundingBox ?: continue
-                if (box.isEmpty) continue
-                // Line cut off by the lens edge: only half readable – skip it.
-                if (box.top <= 1 || box.bottom >= bitmap.height - 2) continue
-                val (bg, fg) = sampleColors(bitmap, box)
-                val info = LineInfo(line.text.trim(), Rect(box), bg, fg)
-                if (group.isNotEmpty() && !fitsGroup(group, info)) {
-                    addGroup(group, separator, blocks)
-                    group = ArrayList()
-                }
-                group += info
-            }
-            addGroup(group, separator, blocks)
-        }
-        blocks.sortWith(compareBy({ it.rect.top }, { it.rect.left }))
-        val combined = blocks.joinToString("\n") { it.text }
-        return Frame(blocks, Rect(crop), combined)
-    }
-
-    private class LineInfo(val text: String, val rect: Rect, val bg: Int, val fg: Int)
-
-    private fun fitsGroup(group: List<LineInfo>, line: LineInfo): Boolean {
-        val avg = group.sumOf { it.rect.height() } / group.size.toFloat()
-        val h = line.rect.height().toFloat()
-        if (max(avg, h) / max(1f, min(avg, h)) > 1.3f) return false
-        if (line.rect.top - group.last().rect.bottom > avg * 0.9f) return false
-        if (colorDistance(line.fg, group.first().fg) > 150) return false
-        if (colorDistance(line.bg, group.first().bg) > 90) return false
-        return true
-    }
-
-    private fun addGroup(group: List<LineInfo>, separator: String, out: MutableList<Block>) {
-        if (group.isEmpty()) return
-        val joined = group.joinToString(separator) { it.text }.trim()
-        if (joined.length < 2) return
-        val rect = Rect(group[0].rect)
-        for (l in group) rect.union(l.rect)
-        val lineHeight = group.sumOf { it.rect.height() } / group.size
-        out += Block(joined, rect, lineHeight, group[0].bg, group[0].fg)
+        val blocks = BlockBuilder.build(text, script, bitmap, skipEdgeLines = true)
+        return Frame(blocks, Rect(crop), blocks.joinToString("\n") { it.text })
     }
 
     private fun onOcrError(e: Exception) {
@@ -205,85 +133,6 @@ class TextPipeline(
             Log.w(TAG, "Text recognition failed", e)
         }
     }
-
-    // ---------------------------------------------------------------- Colours
-
-    /**
-     * Background = most common colour right around the text (median of the ring),
-     * text = the pixels in the block that stand out most from the background.
-     */
-    private fun sampleColors(bitmap: Bitmap, r: Rect): Pair<Int, Int> {
-        val w = bitmap.width
-        val h = bitmap.height
-        val pad = 3
-        val ring = ArrayList<Int>(96)
-        val left = (r.left - pad).coerceIn(0, w - 1)
-        val right = (r.right + pad).coerceIn(0, w - 1)
-        val top = (r.top - pad).coerceIn(0, h - 1)
-        val bottom = (r.bottom + pad).coerceIn(0, h - 1)
-        val stepX = max(1, (right - left) / 24)
-        val stepY = max(1, (bottom - top) / 8)
-        var x = left
-        while (x <= right) {
-            ring += bitmap.getPixel(x, top)
-            ring += bitmap.getPixel(x, bottom)
-            x += stepX
-        }
-        var y = top
-        while (y <= bottom) {
-            ring += bitmap.getPixel(left, y)
-            ring += bitmap.getPixel(right, y)
-            y += stepY
-        }
-        val bg = medianColor(ring)
-
-        val inner = ArrayList<Int>(400)
-        val il = r.left.coerceIn(0, w - 1)
-        val ir = r.right.coerceIn(0, w - 1)
-        val iTop = r.top.coerceIn(0, h - 1)
-        val ib = r.bottom.coerceIn(0, h - 1)
-        val sx = max(1, (ir - il) / 40)
-        val sy = max(1, (ib - iTop) / 10)
-        y = iTop
-        while (y <= ib) {
-            x = il
-            while (x <= ir) {
-                inner += bitmap.getPixel(x, y)
-                x += sx
-            }
-            y += sy
-        }
-        val sorted = inner.sortedByDescending { colorDistance(it, bg) }
-        val take = max(1, sorted.size / 8)
-        var rs = 0
-        var gs = 0
-        var bs = 0
-        for (i in 0 until take) {
-            val c = sorted[i]
-            rs += Color.red(c)
-            gs += Color.green(c)
-            bs += Color.blue(c)
-        }
-        var fg = Color.rgb(rs / take, gs / take, bs / take)
-        if (colorDistance(fg, bg) < 90) {
-            fg = if (luminance(bg) > 0.55f) Color.BLACK else Color.WHITE
-        }
-        return Color.rgb(Color.red(bg), Color.green(bg), Color.blue(bg)) to fg
-    }
-
-    private fun medianColor(colors: List<Int>): Int {
-        if (colors.isEmpty()) return Color.BLACK
-        val r = colors.map { Color.red(it) }.sorted()[colors.size / 2]
-        val g = colors.map { Color.green(it) }.sorted()[colors.size / 2]
-        val b = colors.map { Color.blue(it) }.sorted()[colors.size / 2]
-        return Color.rgb(r, g, b)
-    }
-
-    private fun colorDistance(a: Int, b: Int): Int =
-        abs(Color.red(a) - Color.red(b)) + abs(Color.green(a) - Color.green(b)) + abs(Color.blue(a) - Color.blue(b))
-
-    private fun luminance(c: Int): Float =
-        (0.299f * Color.red(c) + 0.587f * Color.green(c) + 0.114f * Color.blue(c)) / 255f
 
     // ---------------------------------------------------------------- Text → translation
 
@@ -307,7 +156,7 @@ class TextPipeline(
         return Frame(inside, frame.crop, inside.joinToString("\n") { it.text }, Rect(region))
     }
 
-    private fun looksStale(outside: List<Block>): Boolean {
+    private fun looksStale(outside: List<TextBlock>): Boolean {
         var counted = 0
         var bad = 0
         for (b in outside) {
@@ -422,7 +271,7 @@ class TextPipeline(
         languageId.identifyLanguage(raw)
             .addOnSuccessListener { tag ->
                 if (closed || gen != generation) return@addOnSuccessListener
-                val detected = Languages.normalizeDetected(tag)
+                val detected = Languages.detectedFor(tag, raw)
                 val sticky = stickyLang
                 val lang = when {
                     detected == null -> sticky ?: TranslateLanguage.ENGLISH
@@ -441,6 +290,11 @@ class TextPipeline(
         val target = prefs.targetLang
         if (source == target) {
             deliver(frame, frame.blocks.map { it.text }, source, gen)
+            return
+        }
+        if (Languages.samePack(source, target)) {
+            // Traditional ↔ simplified Chinese: just convert the characters.
+            deliver(frame, frame.blocks.map { ChineseScript.convertBetween(it.text, source, target) }, source, gen)
             return
         }
         val pair = "$source>$target"
@@ -573,8 +427,8 @@ class TextPipeline(
             readyPairs -= oldest
         }
         val options = TranslatorOptions.Builder()
-            .setSourceLanguage(source)
-            .setTargetLanguage(target)
+            .setSourceLanguage(Languages.mlkit(source))
+            .setTargetLanguage(Languages.mlkit(target))
             .build()
         return Translation.getClient(options).also { translators[pair] = it }
     }

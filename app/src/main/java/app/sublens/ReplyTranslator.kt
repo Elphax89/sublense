@@ -12,12 +12,12 @@ import com.google.mlkit.nl.translate.TranslatorOptions
  * Translates your own reply (own language → chat's language).
  * Uses the same offline language packs as the subtitle translation.
  */
-class ReplyTranslator(private val prefs: Prefs) {
+class ReplyTranslator(private val prefs: Prefs, private val cacheSize: Int = 40) {
 
     private val main = Handler(Looper.getMainLooper())
     private val translators = LinkedHashMap<String, Translator>()
     private val cache = object : LinkedHashMap<String, String>(32, 0.75f, true) {
-        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, String>?): Boolean = size > 40
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, String>?): Boolean = size > cacheSize
     }
     private var closed = false
 
@@ -28,6 +28,10 @@ class ReplyTranslator(private val prefs: Prefs) {
     fun translate(text: String, from: String, to: String, onSlow: () -> Unit, onDone: (String?) -> Unit) {
         if (from == to) {
             onDone(text)
+            return
+        }
+        if (Languages.samePack(from, to)) {
+            onDone(ChineseScript.convertBetween(text, from, to))
             return
         }
         val pair = "$from>$to"
@@ -75,7 +79,10 @@ class ReplyTranslator(private val prefs: Prefs) {
             val oldest = translators.keys.first()
             translators.remove(oldest)?.close()
         }
-        val options = TranslatorOptions.Builder().setSourceLanguage(from).setTargetLanguage(to).build()
+        val options = TranslatorOptions.Builder()
+            .setSourceLanguage(Languages.mlkit(from))
+            .setTargetLanguage(Languages.mlkit(to))
+            .build()
         return Translation.getClient(options).also { translators[pair] = it }
     }
 

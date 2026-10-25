@@ -419,7 +419,7 @@ class MainActivity : Activity() {
             btn.isEnabled = false
             btn.setText(R.string.models_downloading)
             val conditions = DownloadConditions.Builder().apply { if (prefs.wifiOnly) requireWifi() }.build()
-            val model = TranslateRemoteModel.Builder(lang).build()
+            val model = TranslateRemoteModel.Builder(Languages.mlkit(lang)).build()
             RemoteModelManager.getInstance().download(model, conditions)
                 .addOnSuccessListener { toast(R.string.models_download_done) }
                 .addOnFailureListener { toast(R.string.models_download_failed) }
@@ -440,7 +440,7 @@ class MainActivity : Activity() {
         adapter.addAll(
             targets.map { tag ->
                 val name = Languages.displayName(tag)
-                if (tag in installed) getString(R.string.models_installed_mark, name) else name
+                if (Languages.mlkit(tag) in installed) getString(R.string.models_installed_mark, name) else name
             },
         )
         adapter.notifyDataSetChanged()
@@ -452,7 +452,7 @@ class MainActivity : Activity() {
             .addOnSuccessListener { models ->
                 if (isFinishing || isDestroyed) return@addOnSuccessListener
                 list.removeAllViews()
-                val langs = models.map { it.language }.sortedBy { Languages.displayName(it) }
+                val langs = models.map { it.language }.sortedBy { Languages.packName(it) }
                 updateModelSpinner(langs.toSet())
                 if (langs.isEmpty()) {
                     list.addView(textRow(getString(R.string.models_empty), dim = true))
@@ -468,7 +468,7 @@ class MainActivity : Activity() {
             gravity = Gravity.CENTER_VERTICAL
             minimumHeight = dp(44)
         }
-        val name = textRow(Languages.displayName(lang), dim = false)
+        val name = textRow(Languages.packName(lang), dim = false)
         row.addView(name, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
         // English is the base pack (pivot language) and always stays installed.
         if (lang != TranslateLanguage.ENGLISH) {
