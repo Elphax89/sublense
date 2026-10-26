@@ -4,6 +4,7 @@ import android.app.Activity
 import android.app.LocaleManager
 import android.content.Context
 import android.content.res.Configuration
+import android.content.res.Resources
 import android.os.Build
 import android.os.LocaleList
 import java.util.Locale
@@ -78,7 +79,44 @@ object AppLanguage {
         }
         activity.getSharedPreferences(Prefs.NAME, Context.MODE_PRIVATE).edit().putString(KEY, tag).commit()
         if (tag.isEmpty()) Locale.setDefault(android.content.res.Resources.getSystem().configuration.locales[0])
+        generation++
         activity.recreate()
+    }
+
+    /** Bumped whenever the language changes on Android 12 and older, so cached resources get rebuilt. */
+    @Volatile
+    var generation = 0
+        private set
+
+    /** The locale SubLens should speak right now. */
+    fun locale(context: Context): Locale {
+        val tag = chosen(context)
+        return if (tag.isEmpty()) Resources.getSystem().configuration.locales[0] else Locale.forLanguageTag(tag)
+    }
+
+    /** A configuration with SubLens' language, for contexts that were created before a change. */
+    fun configuration(context: Context, base: Configuration): Configuration =
+        Configuration(base).apply { setLocales(LocaleList(locale(context))) }
+
+    /**
+     * Resources in the current app language for the app and the overlay service (Android 12 and older;
+     * from Android 13 the system updates them itself). Their contexts live across a language change.
+     */
+    class Cache {
+        private var gen = -1
+        private var res: Resources? = null
+
+        fun get(context: Context, fallback: Resources): Resources {
+            if (Build.VERSION.SDK_INT >= 33) return fallback
+            val prefsTag = context.getSharedPreferences(Prefs.NAME, Context.MODE_PRIVATE).getString(KEY, "") ?: ""
+            if (gen == generation) res?.let { return it }
+            val config = Configuration(fallback.configuration)
+            config.setLocales(LocaleList(if (prefsTag.isEmpty()) Resources.getSystem().configuration.locales[0] else Locale.forLanguageTag(prefsTag)))
+            return context.createConfigurationContext(config).resources.also {
+                res = it
+                gen = generation
+            }
+        }
     }
 
     /** For attachBaseContext (Android 12 and older). */

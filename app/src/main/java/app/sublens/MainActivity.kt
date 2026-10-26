@@ -105,7 +105,13 @@ class MainActivity : Activity() {
                 options.indexOfFirst { it.tag == chosen }.coerceAtLeast(0),
             ) { i ->
                 val tag = options[i].tag
-                if (tag != chosen) AppLanguage.set(this, tag)
+                if (tag != chosen) {
+                    AppLanguage.set(this, tag)
+                    // The lens may be open behind the app: it follows the new language right away.
+                    if (OverlayService.isRunning) {
+                        startService(Intent(this, OverlayService::class.java).setAction(OverlayService.ACTION_RELOCALIZE))
+                    }
+                }
             }
         }
     }

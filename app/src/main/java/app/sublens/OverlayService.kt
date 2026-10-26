@@ -11,6 +11,8 @@ import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.ServiceInfo
+import android.content.res.Configuration
+import android.content.res.Resources
 import android.graphics.Point
 import android.graphics.Rect
 import android.graphics.drawable.Icon
@@ -96,6 +98,34 @@ class OverlayService : Service(), OverlayController.Callbacks, TextPipeline.List
         super.attachBaseContext(AppLanguage.wrap(newBase))
     }
 
+    private val localized = AppLanguage.Cache()
+    private var shownLocale: java.util.Locale? = null
+
+    override fun getResources(): Resources = baseContext?.let { localized.get(it, super.getResources()) } ?: super.getResources()
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        // Android 13+: the app language was changed (in SubLens or in the system settings).
+        if (isRunning && AppLanguage.locale(this) != shownLocale) relocalize()
+    }
+
+    /** The app language changed while the lens is open: rebuild its windows and the notification in the new language. */
+    private fun relocalize() {
+        if (!isRunning) return
+        val display = displayManager?.getDisplay(Display.DEFAULT_DISPLAY) ?: return
+        Languages.loadLabels(this)
+        val size = realSize(display)
+        overlay?.destroy()
+        overlay = OverlayController(uiContext(display), prefs, this).also { it.show(size.x, size.y) }
+        overlay?.setReplyLanguages(prefs.targetLang, replyLanguage())
+        capturer?.handler?.post { baseline = null }
+        try {
+            startInForeground()
+        } catch (e: Exception) {
+            Log.w(TAG, "Updating the notification failed", e)
+        }
+    }
+
     override fun onCreate() {
         super.onCreate()
         prefs = Prefs(this)
@@ -107,6 +137,7 @@ class OverlayService : Service(), OverlayController.Callbacks, TextPipeline.List
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
             ACTION_STOP -> shutdown()
+            ACTION_RELOCALIZE -> main.post { if (isRunning && AppLanguage.locale(this) != shownLocale) relocalize() }
             ACTION_START -> {
                 // Required from Android 14: go foreground with type "mediaProjection" first, then get the capture.
                 try {
@@ -179,7 +210,11 @@ class OverlayService : Service(), OverlayController.Callbacks, TextPipeline.List
         } else {
             this
         }
-        return ContextThemeWrapper(base, R.style.Theme_SubLens_Overlay)
+        shownLocale = AppLanguage.locale(this)
+        // The window context keeps the language it was created with, so set it explicitly.
+        return ContextThemeWrapper(base, R.style.Theme_SubLens_Overlay).apply {
+            applyOverrideConfiguration(AppLanguage.configuration(this@OverlayService, base.resources.configuration))
+        }
     }
 
     @Suppress("DEPRECATION")
@@ -510,9 +545,11 @@ class OverlayService : Service(), OverlayController.Callbacks, TextPipeline.List
     }
 
     private fun startInForeground() {
+        // Explicitly in the app language (the service may not have received the new configuration yet).
+        val text = createConfigurationContext(AppLanguage.configuration(this, resources.configuration))
         val nm = getSystemService(NotificationManager::class.java)
         nm.createNotificationChannel(
-            NotificationChannel(CHANNEL_ID, getString(R.string.notif_channel), NotificationManager.IMPORTANCE_LOW),
+            NotificationChannel(CHANNEL_ID, text.getString(R.string.notif_channel), NotificationManager.IMPORTANCE_LOW),
         )
         val stopIntent = PendingIntent.getService(
             this,
@@ -528,14 +565,14 @@ class OverlayService : Service(), OverlayController.Callbacks, TextPipeline.List
         )
         val notification = Notification.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_stat_translate)
-            .setContentTitle(getString(R.string.notif_title))
-            .setContentText(getString(R.string.notif_text))
+            .setContentTitle(text.getString(R.string.notif_title))
+            .setContentText(text.getString(R.string.notif_text))
             .setOngoing(true)
             .setContentIntent(openIntent)
             .addAction(
                 Notification.Action.Builder(
                     Icon.createWithResource(this, R.drawable.ic_close),
-                    getString(R.string.notif_stop),
+                    text.getString(R.string.notif_stop),
                     stopIntent,
                 ).build(),
             )
@@ -661,6 +698,7 @@ class OverlayService : Service(), OverlayController.Callbacks, TextPipeline.List
         private const val TAG = "SubLens"
         const val ACTION_START = "app.sublens.action.START"
         const val ACTION_STOP = "app.sublens.action.STOP"
+        const val ACTION_RELOCALIZE = "app.sublens.action.RELOCALIZE"
         const val EXTRA_RESULT_CODE = "result_code"
         const val EXTRA_RESULT_DATA = "result_data"
         private const val CHANNEL_ID = "overlay"
