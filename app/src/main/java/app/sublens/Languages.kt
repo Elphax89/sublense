@@ -35,6 +35,16 @@ object Languages {
     @Volatile
     var autoLabel = "Auto"
 
+    /** Short names for both Chinese variants ("Chinese (simplified)") – the system's are long and repeat themselves. */
+    @Volatile
+    private var zhLabels: Pair<String, String>? = null
+
+    /** Loads the labels above in the app language (call when a screen or the service starts). */
+    fun loadLabels(context: android.content.Context) {
+        autoLabel = context.getString(R.string.auto_detect)
+        zhLabels = context.getString(R.string.lang_zh_hans) to context.getString(R.string.lang_zh_hant)
+    }
+
     /** Languages whose script text recognition can't read – usable as target language only. */
     private val NO_OCR = setOf(
         "ar", "be", "bg", "bn", "el", "fa", "gu", "he", "ka",
@@ -51,6 +61,10 @@ object Languages {
     fun displayName(tag: String): String {
         if (tag == AUTO) return autoLabel
         // Chinese is shown in traditional characters (see ChineseScript).
+        zhLabels?.let { (hans, hant) ->
+            if (tag == ZH_HANS) return hans
+            if (tag == "zh") return hant
+        }
         if (tag == "zh" || tag == ZH_HANS) {
             val n = Locale.forLanguageTag(if (tag == ZH_HANS) "zh-Hans" else "zh-Hant").getDisplayName(Locale.getDefault())
             if (n.isNotBlank()) return n.replaceFirstChar { it.titlecase(Locale.getDefault()) }

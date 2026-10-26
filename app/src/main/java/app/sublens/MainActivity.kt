@@ -48,7 +48,7 @@ class MainActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        Languages.autoLabel = getString(R.string.auto_detect)
+        Languages.loadLabels(this)
         setContentView(R.layout.activity_main)
         prefs = Prefs(this)
         btnStart = findViewById(R.id.btn_start)
@@ -247,7 +247,7 @@ class MainActivity : Activity() {
         findViewById<View>(R.id.row_reply).setOnClickListener {
             Picker.show(
                 this,
-                getString(R.string.label_reply),
+                getString(R.string.reply_in),
                 langItems(replies, autoLabel = getString(R.string.reply_auto)),
                 replies.indexOf(prefs.replyLang),
             ) { i ->
@@ -317,7 +317,7 @@ class MainActivity : Activity() {
         // Tile in the start area
         findViewById<TextView>(R.id.online_tile_state).text = when {
             on && configured -> p!!.name
-            !configured -> getString(R.string.tile_online_setup)
+            !configured -> getString(R.string.tile_online_cta)
             else -> getString(R.string.tile_online_off)
         }
         findViewById<View>(R.id.online_dot).background = if (on && configured) {
@@ -399,7 +399,10 @@ class MainActivity : Activity() {
     private fun setupLensColors() {
         val row = findViewById<LinearLayout>(R.id.row_lens_color)
         val d = resources.displayMetrics.density
-        val size = (34 * d).toInt()
+        // All nine colours in one row: screen minus page and card padding, a gap after each.
+        val gap = (8 * d).toInt()
+        val available = resources.displayMetrics.widthPixels - (64 * d).toInt() - (6 * d).toInt()
+        val size = ((available - Prefs.LENS_COLORS.size * gap) / Prefs.LENS_COLORS.size).coerceIn((24 * d).toInt(), (34 * d).toInt())
         fun render() {
             for (i in 0 until row.childCount) {
                 val c = Prefs.LENS_COLORS[i]
@@ -417,7 +420,7 @@ class MainActivity : Activity() {
         row.removeAllViews()
         for (c in Prefs.LENS_COLORS) {
             val v = View(this)
-            v.layoutParams = LinearLayout.LayoutParams(size, size).apply { marginEnd = (10 * d).toInt() }
+            v.layoutParams = LinearLayout.LayoutParams(size, size).apply { marginEnd = gap }
             v.contentDescription = getString(R.string.label_lens_color)
             v.setOnClickListener {
                 prefs.lensColor = c
@@ -633,21 +636,32 @@ class MainActivity : Activity() {
             startActivity(Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:$packageName")))
             return
         }
-        // Stop the running overlay first – installing restarts the app.
-        if (OverlayService.isRunning) {
-            startService(Intent(this, OverlayService::class.java).setAction(OverlayService.ACTION_STOP))
-        }
         val btn = findViewById<Button>(R.id.btn_update)
         btn.isEnabled = false
         btn.text = getString(R.string.update_downloading, 0)
-        Updater.downloadAndInstall(
-            this,
-            release,
-            onProgress = { pct -> btn.text = getString(R.string.update_downloading, pct) },
-        ) { ok ->
-            btn.isEnabled = true
-            btn.text = getString(R.string.update_ready, release.versionName)
-            if (!ok) toast(R.string.update_failed)
+        // Close the lens first and wait until it is really gone: Android ignores taps on the install and
+        // Play Protect dialogs while another app's window lies over the screen. Installing restarts the app anyway.
+        if (OverlayService.isRunning) {
+            startService(Intent(this, OverlayService::class.java).setAction(OverlayService.ACTION_STOP))
+        }
+        whenOverlayGone(System.currentTimeMillis()) {
+            Updater.downloadAndInstall(
+                this,
+                release,
+                onProgress = { pct -> btn.text = getString(R.string.update_downloading, pct) },
+            ) { ok ->
+                btn.isEnabled = true
+                btn.text = getString(R.string.update_ready, release.versionName)
+                if (!ok) toast(R.string.update_failed)
+            }
+        }
+    }
+
+    private fun whenOverlayGone(since: Long, then: () -> Unit) {
+        if (!OverlayService.isRunning || System.currentTimeMillis() - since > 3000) {
+            btnStart.postDelayed(then, 300)
+        } else {
+            btnStart.postDelayed({ whenOverlayGone(since, then) }, 100)
         }
     }
 

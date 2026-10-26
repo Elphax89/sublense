@@ -74,5 +74,14 @@
         <receiver
             android:name=".Updater$InstallReceiver"
             android:exported="false" />
+
+        <!-- After an update: notification to reopen SubLens (Android closes the app while replacing it) -->
+        <receiver
+            android:name=".Updater$UpdatedReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
     </application>
 </manifest>

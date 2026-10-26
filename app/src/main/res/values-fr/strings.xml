@@ -238,4 +238,11 @@
     <string name="service_key">Service et clé</string>
     <string name="pick_search">Rechercher</string>
     <string name="text_size">Taille du texte</string>
+    <string name="lang_zh_hans">Chinois (simplifié)</string>
+    <string name="lang_zh_hant">Chinois (traditionnel)</string>
+    <string name="reply_in">Répondre en</string>
+    <string name="tile_online_cta">Configurer →</string>
+    <string name="notif_channel_updates">Mises à jour</string>
+    <string name="notif_updated_title">SubLens mis à jour en %1$s</string>
+    <string name="notif_updated_text">Touche pour ouvrir</string>
 </resources>

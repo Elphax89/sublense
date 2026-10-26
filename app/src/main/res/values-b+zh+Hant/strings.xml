@@ -238,4 +238,11 @@
     <string name="service_key">服務和金鑰</string>
     <string name="pick_search">搜尋</string>
     <string name="text_size">文字大小</string>
+    <string name="lang_zh_hans">中文（簡體）</string>
+    <string name="lang_zh_hant">中文（繁體）</string>
+    <string name="reply_in">回覆語言</string>
+    <string name="tile_online_cta">去設定 →</string>
+    <string name="notif_channel_updates">更新</string>
+    <string name="notif_updated_title">SubLens 已更新到 %1$s</string>
+    <string name="notif_updated_text">點按開啟</string>
 </resources>

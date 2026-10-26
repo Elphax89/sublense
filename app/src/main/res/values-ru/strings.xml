@@ -238,4 +238,11 @@
     <string name="service_key">Сервис и ключ</string>
     <string name="pick_search">Поиск</string>
     <string name="text_size">Размер текста</string>
+    <string name="lang_zh_hans">Китайский (упрощённый)</string>
+    <string name="lang_zh_hant">Китайский (традиционный)</string>
+    <string name="reply_in">Ответ на</string>
+    <string name="tile_online_cta">Настроить →</string>
+    <string name="notif_channel_updates">Обновления</string>
+    <string name="notif_updated_title">SubLens обновлён до %1$s</string>
+    <string name="notif_updated_text">Нажмите, чтобы открыть</string>
 </resources>

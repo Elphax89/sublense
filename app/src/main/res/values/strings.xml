@@ -242,4 +242,11 @@
     <string name="pick_search">Search</string>
     <string name="text_size">Text size</string>
     <string name="text_size_value" translatable="false">%1$d sp</string>
+    <string name="lang_zh_hans">Chinese (simplified)</string>
+    <string name="lang_zh_hant">Chinese (traditional)</string>
+    <string name="reply_in">Reply in</string>
+    <string name="tile_online_cta">Set up →</string>
+    <string name="notif_channel_updates">Updates</string>
+    <string name="notif_updated_title">SubLens updated to %1$s</string>
+    <string name="notif_updated_text">Tap to open</string>
 </resources>

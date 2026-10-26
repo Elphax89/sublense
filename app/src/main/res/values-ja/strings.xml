@@ -238,4 +238,11 @@
     <string name="service_key">サービスとキー</string>
     <string name="pick_search">検索</string>
     <string name="text_size">文字サイズ</string>
+    <string name="lang_zh_hans">中国語（簡体字）</string>
+    <string name="lang_zh_hant">中国語（繁体字）</string>
+    <string name="reply_in">返信の言語</string>
+    <string name="tile_online_cta">設定する →</string>
+    <string name="notif_channel_updates">アップデート</string>
+    <string name="notif_updated_title">SubLens を %1$s に更新しました</string>
+    <string name="notif_updated_text">タップして開く</string>
 </resources>

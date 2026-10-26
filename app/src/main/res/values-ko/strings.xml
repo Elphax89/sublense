@@ -238,4 +238,11 @@
     <string name="service_key">서비스와 키</string>
     <string name="pick_search">검색</string>
     <string name="text_size">글자 크기</string>
+    <string name="lang_zh_hans">중국어(간체)</string>
+    <string name="lang_zh_hant">중국어(번체)</string>
+    <string name="reply_in">답장 언어</string>
+    <string name="tile_online_cta">설정하기 →</string>
+    <string name="notif_channel_updates">업데이트</string>
+    <string name="notif_updated_title">SubLens가 %1$s(으)로 업데이트됨</string>
+    <string name="notif_updated_text">탭하여 열기</string>
 </resources>

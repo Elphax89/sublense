@@ -190,6 +190,39 @@ object Updater {
         }.start()
     }
 
+    /** After an update Android closes the app – a notification brings you straight back. */
+    class UpdatedReceiver : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            if (intent.action != Intent.ACTION_MY_PACKAGE_REPLACED) return
+            if (Build.VERSION.SDK_INT >= 33 &&
+                context.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED
+            ) {
+                return
+            }
+            val nm = context.getSystemService(android.app.NotificationManager::class.java) ?: return
+            nm.createNotificationChannel(
+                android.app.NotificationChannel(UPDATE_CHANNEL, context.getString(R.string.notif_channel_updates), android.app.NotificationManager.IMPORTANCE_DEFAULT),
+            )
+            val open = android.app.PendingIntent.getActivity(
+                context,
+                3,
+                Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                android.app.PendingIntent.FLAG_IMMUTABLE or android.app.PendingIntent.FLAG_UPDATE_CURRENT,
+            )
+            val n = android.app.Notification.Builder(context, UPDATE_CHANNEL)
+                .setSmallIcon(R.drawable.ic_stat_translate)
+                .setContentTitle(context.getString(R.string.notif_updated_title, installedVersionName(context)))
+                .setContentText(context.getString(R.string.notif_updated_text))
+                .setContentIntent(open)
+                .setAutoCancel(true)
+                .build()
+            nm.notify(UPDATE_NOTIFICATION_ID, n)
+        }
+    }
+
+    private const val UPDATE_CHANNEL = "updates"
+    private const val UPDATE_NOTIFICATION_ID = 43
+
     /** Package installer response: show the confirmation dialog or report an error. */
     class InstallReceiver : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -203,10 +236,20 @@ object Updater {
                     }
                     if (confirm != null) {
                         confirm.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        try {
-                            context.startActivity(confirm)
-                        } catch (e: Exception) {
-                            Log.w(TAG, "Could not start install dialog", e)
+                        val app = context.applicationContext
+                        val show = Runnable {
+                            try {
+                                app.startActivity(confirm)
+                            } catch (e: Exception) {
+                                Log.w(TAG, "Could not start install dialog", e)
+                            }
+                        }
+                        // A lens still on screen would block taps on the dialog – close it first.
+                        if (OverlayService.isRunning) {
+                            app.startService(Intent(app, OverlayService::class.java).setAction(OverlayService.ACTION_STOP))
+                            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(show, 800)
+                        } else {
+                            show.run()
                         }
                     }
                 }
