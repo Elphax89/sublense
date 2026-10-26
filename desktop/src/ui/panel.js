@@ -103,11 +103,18 @@ function fillLanguages() {
     if (id === 'replyTo') sel.add(new Option(T.replyAuto, 'auto'));
     for (const l of sorted) sel.add(new Option(langName(l.code), l.code));
   }
+  const ui = $('uiLang');
+  ui.title = T.appLanguage;
+  ui.innerHTML = '';
+  for (const [code, name] of [['', T.appLanguageSystem], ['en', 'English'], ['de', 'Deutsch'], ['zh-Hans', '简体中文'], ['zh-Hant', '繁體中文']]) {
+    ui.add(new Option(name, code));
+  }
   $('swatches').innerHTML = COLOURS.map((c) => `<button data-c="${c}" style="background:${c}" title="${c}"></button>`).join('');
 }
 
 function wire() {
   $('lensBtn').onclick = () => sublens.showLens(!settings.lensVisible);
+  $('uiLang').onchange = (e) => sublens.setSettings({ uiLang: e.target.value });
   $('from').onchange = (e) => sublens.setSettings({ from: e.target.value });
   $('to').onchange = (e) => sublens.setSettings({ to: e.target.value });
   $('replyTo').onchange = (e) => sublens.setSettings({ replyTo: e.target.value });
@@ -163,6 +170,7 @@ function render() {
   const on = settings.lensVisible;
   $('lensBtn').textContent = on ? T.stopLens : T.startLens;
   $('lensBtn').classList.toggle('stop', on);
+  $('uiLang').value = settings.uiLang || '';
   $('from').value = settings.from;
   $('to').value = settings.to;
   $('replyTo').value = settings.replyTo || 'auto';

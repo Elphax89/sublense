@@ -53,7 +53,7 @@ SubLens also runs on your computer: the same lens on top of any window – subti
 - 📴 **Offline.** Text recognition, language detection and translation run on the phone (Google ML Kit). Each language pack downloads once (about 30 MB), and you can download any pack by hand, for example before a trip.
 - 🤖 **Online with AI (optional).** An AI service translates the whole screen in one go and understands the conversation – much more natural for chats, slang and Chinese. Bring your own key; several services are free. See [Online translation](#-online-translation-optional) below.
 - 🔒 **Private.** No server of ours, no account. Screen frames and camera pictures only live briefly in memory and are never saved. With online translation, only the recognised text goes to the service you chose.
-- 🌐 **The app speaks your phone's language:** English, German, Spanish, French, Italian, Portuguese, Polish, Turkish, Russian, Chinese (simplified and traditional), Japanese and Korean.
+- 🌐 **The app speaks your language:** English, German, Spanish, French, Italian, Portuguese, Polish, Turkish, Russian, Chinese (simplified and traditional), Japanese and Korean. It follows the phone, or pick one with the flag button at the top right.
 
 ## 🤖 Online translation (optional)
 
@@ -92,6 +92,7 @@ Android asks for screen sharing every time SubLens starts. Choose **Entire scree
 
 | Area | Options |
 |---|---|
+| App language | Flag button at the top right: phone language or one of 13 languages (also in the Windows/Mac panel) |
 | Language | From (automatic or fixed), To, swap ⇅, script for automatic detection, reply language (automatic = detected language) |
 | Translation | On the phone (offline) or online with AI; service, key and model in the catalog |
 | Lens | Colour, translation in the lens or in a bar next to it, bar position, text size, show original, video mode, reply line (above or below: ⇅ on the lens), refresh (fast 0.3 s · normal 0.5 s · battery saver 1 s) |

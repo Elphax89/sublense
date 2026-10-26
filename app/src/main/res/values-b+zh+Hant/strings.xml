@@ -134,7 +134,7 @@
     <string name="cam_original">原文</string>
     <string name="cam_gallery">翻譯照片</string>
     <string name="cam_flash">手電筒</string>
-    <string name="cam_perm_needed">SubLens 需要使用相機來讀取選單、標牌和QR 碼。請在應用設定中允許。</string>
+    <string name="cam_perm_needed">SubLens 需要使用相機來讀取菜單、標牌和 QR 碼。請在應用設定中允許。</string>
     <string name="cam_perm_button">開啟設定</string>
     <string name="cam_title">用 SubLens 翻譯</string>
     <string name="section_translation">翻譯</string>
@@ -219,4 +219,23 @@
     <string name="prov_openrouter_data">OpenRouter 會把文字轉發給所選模型的提供商。</string>
     <string name="prov_custom_desc">任何相容 OpenAI 的服務或你自己的伺服器，例如 Ollama 或 LM Studio。</string>
     <string name="prov_custom_data">文字只傳送到你填寫的地址。</string>
+    <string name="app_language">應用語言</string>
+    <string name="app_language_system">跟隨手機語言</string>
+    <string name="start_hint_short">然後把鏡頭拖到字幕或聊天上。</string>
+    <string name="how_it_works">使用說明</string>
+    <string name="tile_camera">相機</string>
+    <string name="tile_camera_sub">菜單、招牌、QR 碼</string>
+    <string name="tile_online">線上 AI</string>
+    <string name="tile_online_off">已關閉</string>
+    <string name="tile_online_setup">尚未設定</string>
+    <string name="engine_offline_short">離線</string>
+    <string name="video_title">影片模式</string>
+    <string name="video_sub">持續讀取動態畫面，適合字幕。關閉時忽略 GIF 和動態表情。</string>
+    <string name="composer_title">回覆欄</string>
+    <string name="composer_sub">用你的語言輸入——SubLens 會翻譯成聊天的語言並複製。</string>
+    <string name="models_count">已下載 %1$d 個</string>
+    <string name="models_none_short">還沒有</string>
+    <string name="service_key">服務和金鑰</string>
+    <string name="pick_search">搜尋</string>
+    <string name="text_size">文字大小</string>
 </resources>

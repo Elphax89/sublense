@@ -219,4 +219,23 @@
     <string name="prov_openrouter_data">OpenRouter inoltra i testi al fornitore del modello scelto.</string>
     <string name="prov_custom_desc">Qualsiasi servizio compatibile con OpenAI o il tuo server, ad es. Ollama o LM Studio.</string>
     <string name="prov_custom_data">I testi vanno solo all\'indirizzo che inserisci.</string>
+    <string name="app_language">Lingua dell\'app</string>
+    <string name="app_language_system">Lingua del telefono</string>
+    <string name="start_hint_short">Poi trascina la lente sui sottotitoli o su una chat.</string>
+    <string name="how_it_works">Come funziona</string>
+    <string name="tile_camera">Fotocamera</string>
+    <string name="tile_camera_sub">Menù, cartelli, QR</string>
+    <string name="tile_online">IA online</string>
+    <string name="tile_online_off">Disattivata</string>
+    <string name="tile_online_setup">Non ancora configurata</string>
+    <string name="engine_offline_short">Offline</string>
+    <string name="video_title">Modalità video</string>
+    <string name="video_sub">Legge di continuo le immagini in movimento, per i sottotitoli. Disattivata: GIF ed emoji animate vengono ignorate.</string>
+    <string name="composer_title">Riga di risposta</string>
+    <string name="composer_sub">Scrivi nella tua lingua – SubLens lo copia nella lingua della chat.</string>
+    <string name="models_count">%1$d scaricati</string>
+    <string name="models_none_short">ancora nessuno</string>
+    <string name="service_key">Servizio e chiave</string>
+    <string name="pick_search">Cerca</string>
+    <string name="text_size">Dimensione del testo</string>
 </resources>

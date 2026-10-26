@@ -95,7 +95,9 @@ module.exports = {
     "footerOnline": "Free · open source · only recognised text goes to {0}",
     "onlineKeySaved": "Key saved (…{0}) – paste a new one to replace it",
     "onlineRecognised": "Key for {0} recognised.",
-    "back": "Back"
+    "back": "Back",
+    "appLanguage": "App language",
+    "appLanguageSystem": "System language"
   },
   "de": {
     "engineSetup": "Online-Übersetzung einrichten →",
@@ -188,7 +190,9 @@ module.exports = {
     "footerOnline": "Kostenlos · Open Source · nur erkannter Text geht an {0}",
     "onlineKeySaved": "Schlüssel gespeichert (…{0}) – zum Ersetzen einen neuen einfügen",
     "onlineRecognised": "Schlüssel für {0} erkannt.",
-    "back": "Zurück"
+    "back": "Zurück",
+    "appLanguage": "App-Sprache",
+    "appLanguageSystem": "Systemsprache"
   },
   "zh-Hans": {
     "engineSetup": "设置在线翻译 →",
@@ -281,7 +285,9 @@ module.exports = {
     "footerOnline": "免费 · 开源 · 只有识别出的文字会发送到 {0}",
     "onlineKeySaved": "密钥已保存（…{0}）——粘贴新的即可替换",
     "onlineRecognised": "已识别 {0} 的密钥。",
-    "back": "返回"
+    "back": "返回",
+    "appLanguage": "应用语言",
+    "appLanguageSystem": "跟随系统"
   },
   "zh-Hant": {
     "engineSetup": "設定線上翻譯 →",
@@ -374,6 +380,8 @@ module.exports = {
     "footerOnline": "免費 · 開源 · 只有識別出的文字會傳送到 {0}",
     "onlineKeySaved": "金鑰已儲存（…{0}）——貼上新的即可替換",
     "onlineRecognised": "已識別 {0} 的金鑰。",
-    "back": "返回"
+    "back": "返回",
+    "appLanguage": "應用語言",
+    "appLanguageSystem": "跟隨系統"
   }
 };

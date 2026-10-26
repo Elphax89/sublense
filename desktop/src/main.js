@@ -29,6 +29,7 @@ let texts = null;
 let lastSource = null;
 let modelState = { status: 'unknown' };
 let quitting = false;
+let updateInfo = null; // newer version found – shown again when the panel reloads
 
 // ---------------------------------------------------------------- Settings
 
@@ -45,6 +46,7 @@ function defaults() {
     replyAbove: false,
     lensVisible: false,
     lensBounds: null,
+    uiLang: '', // '' = system language
     // Online translation (off by default; needs the user's own key)
     online: false,
     provider: 'zai',
@@ -83,6 +85,13 @@ function updateSettings(patch) {
   const before = { ...settings };
   settings = { ...settings, ...patch };
   saveSettings();
+  if (before.uiLang !== settings.uiLang) {
+    // New app language: reload both windows with the new texts.
+    texts = i18n.table(settings.uiLang || app.getLocale());
+    for (const w of [panel, lens]) if (w && !w.isDestroyed()) w.webContents.reload();
+    updateTray();
+    return;
+  }
   broadcast('settings', publicSettings());
   if (before.reply !== settings.reply) layoutLensForComposer(before.reply);
 }
@@ -114,6 +123,9 @@ function createPanel() {
   });
   panel.loadFile(path.join(__dirname, 'ui', 'panel.html'));
   panel.once('ready-to-show', () => panel.show());
+  panel.webContents.on('did-finish-load', () => {
+    if (updateInfo) panel.webContents.send('update', updateInfo);
+  });
   panel.on('close', (e) => {
     if (quitting) return;
     if (lens && lens.isVisible()) {
@@ -753,7 +765,10 @@ async function checkForUpdate() {
     const latest = m.slice(1).map(Number);
     const mine = app.getVersion().split('.').map(Number);
     const newer = latest[0] > mine[0] || (latest[0] === mine[0] && (latest[1] > mine[1] || (latest[1] === mine[1] && latest[2] > mine[2])));
-    if (newer) broadcast('update', { version: latest.join('.'), url: DOWNLOAD_PAGE });
+    if (newer) {
+      updateInfo = { version: latest.join('.'), url: DOWNLOAD_PAGE };
+      broadcast('update', updateInfo);
+    }
   } catch {
     // offline – no problem
   }
@@ -810,7 +825,7 @@ if (process.argv.includes('--selftest')) {
 
   app.whenReady().then(() => {
     loadSettings();
-    texts = i18n.table(app.getLocale());
+    texts = i18n.table(settings.uiLang || app.getLocale());
     core.init({
       dataDir: app.getPath('userData'),
       onProgress: (p) => {

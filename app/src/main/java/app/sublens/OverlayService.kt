@@ -92,6 +92,10 @@ class OverlayService : Service(), OverlayController.Callbacks, TextPipeline.List
 
     private val prefListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key -> onPrefChanged(key) }
 
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(AppLanguage.wrap(newBase))
+    }
+
     override fun onCreate() {
         super.onCreate()
         prefs = Prefs(this)

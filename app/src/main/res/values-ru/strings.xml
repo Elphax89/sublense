@@ -219,4 +219,23 @@
     <string name="prov_openrouter_data">OpenRouter передаёт тексты поставщику выбранной модели.</string>
     <string name="prov_custom_desc">Любой OpenAI-совместимый сервис или собственный сервер, напр. Ollama или LM Studio.</string>
     <string name="prov_custom_data">Тексты уходят только на указанный вами адрес.</string>
+    <string name="app_language">Язык приложения</string>
+    <string name="app_language_system">Язык телефона</string>
+    <string name="start_hint_short">Затем наведите линзу на субтитры или чат.</string>
+    <string name="how_it_works">Как это работает</string>
+    <string name="tile_camera">Камера</string>
+    <string name="tile_camera_sub">Меню, вывески, QR</string>
+    <string name="tile_online">Онлайн-ИИ</string>
+    <string name="tile_online_off">Выкл.</string>
+    <string name="tile_online_setup">Ещё не настроено</string>
+    <string name="engine_offline_short">Офлайн</string>
+    <string name="video_title">Режим видео</string>
+    <string name="video_sub">Постоянно читает движущееся изображение – для субтитров. Выкл.: GIF и анимированные эмодзи игнорируются.</string>
+    <string name="composer_title">Строка ответа</string>
+    <string name="composer_sub">Пишите на своём языке – SubLens скопирует текст на языке чата.</string>
+    <string name="models_count">Загружено: %1$d</string>
+    <string name="models_none_short">пока нет</string>
+    <string name="service_key">Сервис и ключ</string>
+    <string name="pick_search">Поиск</string>
+    <string name="text_size">Размер текста</string>
 </resources>

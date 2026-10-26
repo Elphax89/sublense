@@ -219,4 +219,23 @@
     <string name="prov_openrouter_data">OpenRouter 会把文字转发给所选模型的提供商。</string>
     <string name="prov_custom_desc">任何兼容 OpenAI 的服务或你自己的服务器，例如 Ollama 或 LM Studio。</string>
     <string name="prov_custom_data">文字只发送到你填写的地址。</string>
+    <string name="app_language">应用语言</string>
+    <string name="app_language_system">跟随手机语言</string>
+    <string name="start_hint_short">然后把镜头拖到字幕或聊天上。</string>
+    <string name="how_it_works">使用说明</string>
+    <string name="tile_camera">相机</string>
+    <string name="tile_camera_sub">菜单、招牌、二维码</string>
+    <string name="tile_online">在线 AI</string>
+    <string name="tile_online_off">已关闭</string>
+    <string name="tile_online_setup">尚未设置</string>
+    <string name="engine_offline_short">离线</string>
+    <string name="video_title">视频模式</string>
+    <string name="video_sub">持续读取动态画面，适合字幕。关闭时忽略 GIF 和动态表情。</string>
+    <string name="composer_title">回复栏</string>
+    <string name="composer_sub">用你的语言输入——SubLens 会翻译成聊天的语言并复制。</string>
+    <string name="models_count">已下载 %1$d 个</string>
+    <string name="models_none_short">还没有</string>
+    <string name="service_key">服务和密钥</string>
+    <string name="pick_search">搜索</string>
+    <string name="text_size">文字大小</string>
 </resources>

@@ -9,6 +9,7 @@
     <color name="card">#FF171B22</color>
     <color name="card_stroke">#FF232A35</color>
     <color name="on_accent">#FF06201C</color>
+    <color name="field">#FF0F141B</color>
 
     <color name="text_main">#FFF5F7FA</color>
     <color name="text_dim">#FF9AA4B2</color>

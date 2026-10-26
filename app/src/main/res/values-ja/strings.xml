@@ -219,4 +219,23 @@
     <string name="prov_openrouter_data">OpenRouter は選んだモデルの提供元に文字を転送します。</string>
     <string name="prov_custom_desc">OpenAI 互換のサービスや自分のサーバー（例：Ollama、LM Studio）。</string>
     <string name="prov_custom_data">文字は入力したアドレスにだけ送られます。</string>
+    <string name="app_language">アプリの言語</string>
+    <string name="app_language_system">スマホの言語</string>
+    <string name="start_hint_short">あとはレンズを字幕やチャットの上に動かすだけ。</string>
+    <string name="how_it_works">使い方</string>
+    <string name="tile_camera">カメラ</string>
+    <string name="tile_camera_sub">メニュー・看板・QR</string>
+    <string name="tile_online">オンライン AI</string>
+    <string name="tile_online_off">オフ</string>
+    <string name="tile_online_setup">未設定</string>
+    <string name="engine_offline_short">オフライン</string>
+    <string name="video_title">ビデオモード</string>
+    <string name="video_sub">動く映像を読み続けます（字幕向け）。オフ：GIF やアニメーション絵文字は無視します。</string>
+    <string name="composer_title">返信欄</string>
+    <string name="composer_sub">自分の言語で書くと、SubLens がチャットの言語でコピーします。</string>
+    <string name="models_count">%1$d 個ダウンロード済み</string>
+    <string name="models_none_short">まだなし</string>
+    <string name="service_key">サービスとキー</string>
+    <string name="pick_search">検索</string>
+    <string name="text_size">文字サイズ</string>
 </resources>

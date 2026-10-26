@@ -1,5 +1,6 @@
 package app.sublens
 
+import android.content.Context
 import android.app.Activity
 import android.app.AlertDialog
 import android.content.ActivityNotFoundException
@@ -50,6 +51,10 @@ class OnlineActivity : Activity() {
         val remove: Button = root.findViewById(R.id.btn_remove)
         val use: Button = root.findViewById(R.id.btn_use)
         var testing = false
+    }
+
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(AppLanguage.wrap(newBase))
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

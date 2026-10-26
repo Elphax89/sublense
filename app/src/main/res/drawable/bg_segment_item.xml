@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Segmented control: one option (filled when selected) -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_selected="true">
+        <shape android:shape="rectangle">
+            <corners android:radius="11dp" />
+            <solid android:color="@color/accent" />
+        </shape>
+    </item>
+    <item>
+        <ripple android:color="#22FFFFFF">
+            <item android:id="@android:id/mask">
+                <shape android:shape="rectangle">
+                    <corners android:radius="11dp" />
+                    <solid android:color="#FFFFFFFF" />
+                </shape>
+            </item>
+        </ripple>
+    </item>
+</selector>

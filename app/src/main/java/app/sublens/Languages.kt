@@ -60,6 +60,21 @@ object Languages {
         return name.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
     }
 
+    /** A flag for the language pickers (languages aren't countries – the most common one, or 🌐). */
+    fun flag(tag: String): String = FLAGS[tag] ?: "🌐"
+
+    private val FLAGS = mapOf(
+        AUTO to "🌐", "af" to "🇿🇦", "ar" to "🇸🇦", "be" to "🇧🇾", "bg" to "🇧🇬", "bn" to "🇧🇩", "ca" to "🇦🇩",
+        "cs" to "🇨🇿", "cy" to "🏴󠁧󠁢󠁷󠁬󠁳󠁿", "da" to "🇩🇰", "de" to "🇩🇪", "el" to "🇬🇷", "en" to "🇬🇧", "es" to "🇪🇸",
+        "et" to "🇪🇪", "fa" to "🇮🇷", "fi" to "🇫🇮", "fr" to "🇫🇷", "ga" to "🇮🇪", "gl" to "🇪🇸", "gu" to "🇮🇳",
+        "he" to "🇮🇱", "hi" to "🇮🇳", "hr" to "🇭🇷", "ht" to "🇭🇹", "hu" to "🇭🇺", "id" to "🇮🇩", "is" to "🇮🇸",
+        "it" to "🇮🇹", "ja" to "🇯🇵", "ka" to "🇬🇪", "kn" to "🇮🇳", "ko" to "🇰🇷", "lt" to "🇱🇹", "lv" to "🇱🇻",
+        "mk" to "🇲🇰", "mr" to "🇮🇳", "ms" to "🇲🇾", "mt" to "🇲🇹", "nl" to "🇳🇱", "no" to "🇳🇴", "pl" to "🇵🇱",
+        "pt" to "🇧🇷", "ro" to "🇷🇴", "ru" to "🇷🇺", "sk" to "🇸🇰", "sl" to "🇸🇮", "sq" to "🇦🇱", "sv" to "🇸🇪",
+        "sw" to "🇰🇪", "ta" to "🇱🇰", "te" to "🇮🇳", "th" to "🇹🇭", "tl" to "🇵🇭", "tr" to "🇹🇷", "uk" to "🇺🇦",
+        "ur" to "🇵🇰", "vi" to "🇻🇳", "zh" to "🇭🇰", ZH_HANS to "🇨🇳",
+    )
+
     fun shortCode(tag: String): String = when (tag) {
         AUTO -> "AUTO"
         "zh" -> "ZH繁"

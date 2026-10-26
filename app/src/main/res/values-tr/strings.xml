@@ -219,4 +219,23 @@
     <string name="prov_openrouter_data">OpenRouter metinleri seçilen modelin sağlayıcısına iletir.</string>
     <string name="prov_custom_desc">OpenAI uyumlu herhangi bir hizmet ya da kendi sunucun, ör. Ollama veya LM Studio.</string>
     <string name="prov_custom_data">Metinler yalnızca girdiğin adrese gider.</string>
+    <string name="app_language">Uygulama dili</string>
+    <string name="app_language_system">Telefonun dili</string>
+    <string name="start_hint_short">Sonra merceği altyazıların veya sohbetin üstüne sürükle.</string>
+    <string name="how_it_works">Nasıl çalışır</string>
+    <string name="tile_camera">Kamera</string>
+    <string name="tile_camera_sub">Menüler, tabelalar, QR</string>
+    <string name="tile_online">Çevrimiçi YZ</string>
+    <string name="tile_online_off">Kapalı</string>
+    <string name="tile_online_setup">Henüz kurulmadı</string>
+    <string name="engine_offline_short">Çevrimdışı</string>
+    <string name="video_title">Video modu</string>
+    <string name="video_sub">Hareketli görüntüyü sürekli okur, altyazılar için. Kapalı: GIF\'ler ve hareketli emojiler yok sayılır.</string>
+    <string name="composer_title">Yanıt satırı</string>
+    <string name="composer_sub">Kendi dilinde yaz – SubLens sohbetin dilinde kopyalar.</string>
+    <string name="models_count">%1$d indirildi</string>
+    <string name="models_none_short">henüz yok</string>
+    <string name="service_key">Hizmet ve anahtar</string>
+    <string name="pick_search">Ara</string>
+    <string name="text_size">Yazı boyutu</string>
 </resources>

@@ -1,6 +1,7 @@
 package app.sublens
 
 import android.Manifest
+import android.content.Context
 import android.app.AlertDialog
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -94,6 +95,10 @@ class CameraActivity : ComponentActivity() {
     private var lastTextAt = 0L
 
     private val hideQr = Runnable { if (!frozen) showQr(null) }
+
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(AppLanguage.wrap(newBase))
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

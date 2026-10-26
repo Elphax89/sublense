@@ -219,4 +219,23 @@
     <string name="prov_openrouter_data">OpenRouter przekazuje teksty dostawcy wybranego modelu.</string>
     <string name="prov_custom_desc">Dowolna usługa zgodna z OpenAI lub własny serwer, np. Ollama lub LM Studio.</string>
     <string name="prov_custom_data">Teksty trafiają tylko pod wpisany adres.</string>
+    <string name="app_language">Język aplikacji</string>
+    <string name="app_language_system">Język telefonu</string>
+    <string name="start_hint_short">Potem przesuń soczewkę na napisy lub czat.</string>
+    <string name="how_it_works">Jak to działa</string>
+    <string name="tile_camera">Aparat</string>
+    <string name="tile_camera_sub">Menu, szyldy, kody QR</string>
+    <string name="tile_online">AI online</string>
+    <string name="tile_online_off">Wyłączone</string>
+    <string name="tile_online_setup">Jeszcze nie skonfigurowano</string>
+    <string name="engine_offline_short">Offline</string>
+    <string name="video_title">Tryb wideo</string>
+    <string name="video_sub">Ciągle czyta ruchomy obraz – do napisów. Wyłączony: GIF-y i animowane emoji są pomijane.</string>
+    <string name="composer_title">Pole odpowiedzi</string>
+    <string name="composer_sub">Pisz w swoim języku – SubLens skopiuje to w języku czatu.</string>
+    <string name="models_count">Pobrane: %1$d</string>
+    <string name="models_none_short">jeszcze brak</string>
+    <string name="service_key">Usługa i klucz</string>
+    <string name="pick_search">Szukaj</string>
+    <string name="text_size">Rozmiar tekstu</string>
 </resources>
